@@ -2,7 +2,12 @@ import YAML from "yaml";
 import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 
 type MutableDeck = Record<string, unknown> & {
+  defaults?: MutableDefaults;
   slides?: MutableSlide[];
+};
+
+type MutableDefaults = Record<string, unknown> & {
+  slots?: Record<string, unknown>;
 };
 
 type MutableSlide = Record<string, unknown> & {
@@ -48,6 +53,55 @@ export function updateMarkdownSlot(
     const slots = ensureSlots(slide);
     slots[slotName] = { markdown };
   });
+}
+
+export function removeSlideSlot(
+  source: DeckSource,
+  slideId: string,
+  slotName: SlotName,
+): DeckSource {
+  return updateSlide(source, slideId, (slide) => {
+    if (!isRecord(slide.slots)) {
+      return;
+    }
+
+    delete slide.slots[slotName];
+    if (Object.keys(slide.slots).length === 0) {
+      delete slide.slots;
+    }
+  });
+}
+
+export function hasSlideSlot(source: DeckSource, slideId: string, slotName: SlotName): boolean {
+  const slot = getSlot(source, slideId, slotName);
+  return slot !== undefined;
+}
+
+export function getDefaultSlotMarkdown(source: DeckSource, slotName: SlotName): string {
+  const slot = getDefaultSlot(source, slotName);
+  if (isRecord(slot) && typeof slot.markdown === "string") {
+    return slot.markdown;
+  }
+  return "";
+}
+
+export function hasDefaultSlot(source: DeckSource, slotName: SlotName): boolean {
+  return getDefaultSlot(source, slotName) !== undefined;
+}
+
+export function updateDefaultMarkdownSlot(
+  source: DeckSource,
+  slotName: SlotName,
+  markdown: string,
+): DeckSource {
+  const deck = parseMutableDeck(source);
+  if (!deck) {
+    return source;
+  }
+
+  const slots = ensureDefaultSlots(deck);
+  slots[slotName] = { markdown };
+  return stringifyMutableDeck(source, deck);
 }
 
 export function updateImageSlot(
@@ -186,11 +240,32 @@ function getSlot(source: DeckSource, slideId: string, slotName: SlotName): unkno
   return slide?.slots?.[slotName];
 }
 
+function getDefaultSlot(source: DeckSource, slotName: SlotName): unknown {
+  const deck = parseMutableDeck(source);
+  if (!deck) {
+    return undefined;
+  }
+
+  return isRecord(deck.defaults?.slots) ? deck.defaults.slots[slotName] : undefined;
+}
+
 function ensureSlots(slide: MutableSlide): Record<string, unknown> {
   if (!isRecord(slide.slots)) {
     slide.slots = {};
   }
   return slide.slots;
+}
+
+function ensureDefaultSlots(deck: MutableDeck): Record<string, unknown> {
+  if (!isRecord(deck.defaults)) {
+    deck.defaults = {};
+  }
+
+  if (!isRecord(deck.defaults.slots)) {
+    deck.defaults.slots = {};
+  }
+
+  return deck.defaults.slots;
 }
 
 function migrateSlots(

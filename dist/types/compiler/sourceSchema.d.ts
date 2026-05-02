@@ -94,6 +94,60 @@ export declare const rawDeckSchema: z.ZodObject<{
             out?: string | undefined;
             durationMs?: number | undefined;
         }>>;
+        slots: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodObject<{
+            markdown: z.ZodString;
+        }, "strict", z.ZodTypeAny, {
+            markdown: string;
+        }, {
+            markdown: string;
+        }>, z.ZodObject<{
+            image: z.ZodObject<{
+                assetId: z.ZodOptional<z.ZodString>;
+                src: z.ZodOptional<z.ZodString>;
+                alt: z.ZodOptional<z.ZodString>;
+            }, "strict", z.ZodTypeAny, {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            }, {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            }>;
+        }, "strict", z.ZodTypeAny, {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        }, {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        }>, z.ZodObject<{
+            renderer: z.ZodObject<{
+                kind: z.ZodString;
+                props: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+            }, "strict", z.ZodTypeAny, {
+                kind: string;
+                props: Record<string, unknown>;
+            }, {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            }>;
+        }, "strict", z.ZodTypeAny, {
+            renderer: {
+                kind: string;
+                props: Record<string, unknown>;
+            };
+        }, {
+            renderer: {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            };
+        }>]>>>;
     }, "strict", z.ZodTypeAny, {
         aspectRatio: "16:9" | "4:3";
         transition: {
@@ -101,6 +155,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             out: string;
             durationMs: number;
         };
+        slots: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props: Record<string, unknown>;
+            };
+        }>;
     }, {
         aspectRatio?: "16:9" | "4:3" | undefined;
         transition?: {
@@ -108,6 +176,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             out?: string | undefined;
             durationMs?: number | undefined;
         } | undefined;
+        slots?: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            };
+        }> | undefined;
     }>>;
     assets: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodObject<{
         type: z.ZodLiteral<"image">;
@@ -194,7 +276,6 @@ export declare const rawDeckSchema: z.ZodObject<{
         }>>;
     }, "strict", z.ZodTypeAny, {
         id: string;
-        layout: string;
         slots: Record<string, {
             markdown: string;
         } | {
@@ -209,6 +290,7 @@ export declare const rawDeckSchema: z.ZodObject<{
                 props: Record<string, unknown>;
             };
         }>;
+        layout: string;
         transition?: {
             in: string;
             out: string;
@@ -256,15 +338,6 @@ export declare const rawDeckSchema: z.ZodObject<{
             out: string;
             durationMs: number;
         };
-    };
-    assets: Record<string, {
-        type: "image";
-        src: string;
-        alt: string;
-    }>;
-    slides: {
-        id: string;
-        layout: string;
         slots: Record<string, {
             markdown: string;
         } | {
@@ -279,6 +352,29 @@ export declare const rawDeckSchema: z.ZodObject<{
                 props: Record<string, unknown>;
             };
         }>;
+    };
+    assets: Record<string, {
+        type: "image";
+        src: string;
+        alt: string;
+    }>;
+    slides: {
+        id: string;
+        slots: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props: Record<string, unknown>;
+            };
+        }>;
+        layout: string;
         transition?: {
             in: string;
             out: string;
@@ -327,6 +423,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             out?: string | undefined;
             durationMs?: number | undefined;
         } | undefined;
+        slots?: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            };
+        }> | undefined;
     } | undefined;
     assets?: Record<string, {
         type: "image";

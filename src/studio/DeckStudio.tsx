@@ -25,9 +25,12 @@ import {
   addSlide,
   deleteSlide,
   duplicateSlide,
+  getDefaultSlotMarkdown,
+  hasDefaultSlot,
   updateSlideLayout,
 } from "./editableSource";
 import { SlideFormEditor } from "./form/SlideFormEditor";
+import { GlobalDefaultsDialog } from "./global/GlobalDefaultsDialog";
 
 type DeckStudioViewMode = "form" | "source" | "preview";
 
@@ -63,6 +66,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const [viewMode, setViewMode] = useState<DeckStudioViewMode>(
     studioOptions?.editing?.defaultMode === "source" ? "source" : "form",
   );
+  const [globalDefaultsOpen, setGlobalDefaultsOpen] = useState(false);
   const [versions, setVersions] = useState<readonly DeckVersionSummary[]>([]);
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
@@ -161,6 +165,17 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     ? compileResult.deck
     : undefined;
   const selectedSlide = compiledDeck?.slides.find((slide) => slide.id === selectedSlideId) ?? compiledDeck?.slides[0];
+  const inheritedMarkdownSlots = useMemo(() => {
+    const inheritedSlots = new Map<string, string>();
+
+    for (const slotName of ["eyebrow", "footer"] as const) {
+      if (hasDefaultSlot(source, slotName)) {
+        inheritedSlots.set(slotName, getDefaultSlotMarkdown(source, slotName));
+      }
+    }
+
+    return inheritedSlots;
+  }, [source]);
 
   const publishSource = useCallback(
     (nextSource: DeckSource, reason: DeckSourceChangeReason, nextSelectedSlideId?: string): void => {
@@ -444,6 +459,13 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
                 </select>
               </label>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setGlobalDefaultsOpen(true)}
+              disabled={readOnly}
+            >
+              Global
+            </button>
             {features.allowDuplicateSlide && selectedSlide ? (
               <button
                 type="button"
@@ -494,6 +516,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               source={source}
               slideId={selectedSlide.id}
               fields={selectedSlide.layout.definition.editor.fieldGroups.flatMap((group) => group.fields)}
+              inheritedMarkdownSlots={inheritedMarkdownSlots}
               readOnly={Boolean(readOnly)}
               onUpdate={updateSource}
             />
@@ -565,6 +588,14 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             </section>
           ) : null}
         </aside>
+      ) : null}
+      {globalDefaultsOpen ? (
+        <GlobalDefaultsDialog
+          source={source}
+          readOnly={Boolean(readOnly)}
+          onUpdate={updateSource}
+          onClose={() => setGlobalDefaultsOpen(false)}
+        />
       ) : null}
     </div>
   );

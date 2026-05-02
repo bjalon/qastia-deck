@@ -61,9 +61,14 @@ export const rawDeckSchema = z
       .object({
         aspectRatio: z.union([z.literal("16:9"), z.literal("4:3")]).default("16:9"),
         transition: transitionSchema.default({ in: "none", out: "none", durationMs: 0 }),
+        slots: z.record(rawSlotSchema).default({}),
       })
       .strict()
-      .default({ aspectRatio: "16:9", transition: { in: "none", out: "none", durationMs: 0 } }),
+      .default({
+        aspectRatio: "16:9",
+        transition: { in: "none", out: "none", durationMs: 0 },
+        slots: {},
+      }),
     assets: z
       .record(
         z

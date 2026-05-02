@@ -31,22 +31,23 @@ defaults:
     in: fade
     out: fade
     durationMs: 180
+  slots:
+    eyebrow:
+      markdown: |
+        Atelier CODIR
+    footer:
+      markdown: |
+        Sophie Jalon Conseil
 slides:
   - id: ouverture
     layout: cover
     slots:
-      eyebrow:
-        markdown: |
-          Atelier CODIR
       title:
         markdown: |
           Aligner les décisions
       subtitle:
         markdown: |
           Un support éditable directement dans l’espace client.
-      footer:
-        markdown: |
-          Sophie Jalon Conseil
   - id: cadrage
     layout: title-body
     slots:
@@ -79,6 +80,9 @@ slides:
           - Contenu structuré
           - Prévisualisation immédiate
           - Sauvegarde locale des versions
+      footer:
+        markdown: |
+          Sophie Jalon Conseil - Synthèse comparative
 `,
 };
 

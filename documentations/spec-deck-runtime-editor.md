@@ -315,6 +315,13 @@ defaults:
     in: "fade"
     out: "fade"
     durationMs: 250
+  slots:
+    eyebrow:
+      markdown: |
+        Formation interne
+    footer:
+      markdown: |
+        Risk Academy
 
 assets:
   logo:
@@ -1021,6 +1028,7 @@ export type DeckSourceChangeReason =
   | "slide-reorder"
   | "layout-change"
   | "theme-change"
+  | "defaults-edit"
   | "metadata-edit"
   | "raw-source-edit"
   | "version-restore"
@@ -1488,6 +1496,7 @@ export type CompiledSlot = {
   readonly name: SlotName;
   readonly kind: SlotKind;
   readonly content: CompiledContent;
+  readonly origin: "source" | "default" | "synthetic";
   readonly diagnostics: readonly DeckDiagnostic[];
 };
 

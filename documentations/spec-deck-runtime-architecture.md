@@ -120,10 +120,23 @@ Mode `strict` :
 Les slots compiles portent leur origine :
 
 ```ts
-origin: "source" | "synthetic"
+origin: "source" | "default" | "synthetic"
 ```
 
-Cette information permet au studio de rendre le formulaire sans masquer que le contenu n'existe pas encore dans la source.
+Cette information permet au studio de rendre le formulaire sans masquer que le contenu n'existe pas encore dans la source. Un slot `default` vient de `defaults.slots` au niveau deck. Il est affiche comme une valeur heritee dans le studio et peut etre remplace par un override local sur la slide.
+
+Les defaults de slots servent aux contenus repetes, par exemple `eyebrow` et `footer` :
+
+```yaml
+defaults:
+  slots:
+    eyebrow:
+      markdown: Atelier CODIR
+    footer:
+      markdown: Sophie Jalon Conseil
+```
+
+Le compiler applique uniquement ces slots aux layouts qui les declarent dans `requiredSlots` ou `optionalSlots`. Un slot local garde toujours la priorite sur le default global.
 
 ## 5. Runtime Et Registries
 

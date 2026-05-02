@@ -122,6 +122,27 @@ export async function compileDeck(
       );
     }
 
+    for (const [slotName, slot] of Object.entries(rawDeck.defaults.slots)) {
+      if (slots.has(slotName) || !layoutSupportsSlot(layout, slotName)) {
+        continue;
+      }
+
+      const compiledSlot = await compileSlot(
+        slotName,
+        slot,
+        assets,
+        ["defaults", "slots", slotName],
+        "default",
+      );
+      slots.set(slotName, compiledSlot);
+      diagnostics.push(
+        ...compiledSlot.diagnostics.map((item) => ({
+          ...item,
+          slideId: item.slideId ?? slide.id,
+        })),
+      );
+    }
+
     for (const requiredSlot of layout.requiredSlots) {
       if (!slots.has(requiredSlot) && compileMode === "authoring") {
         slots.set(requiredSlot, emptyMarkdownSlot(requiredSlot));
@@ -239,7 +260,7 @@ function validateSemantics(
     }
 
     for (const slotName of layout.requiredSlots) {
-      if (!(slotName in slide.slots)) {
+      if (!(slotName in slide.slots) && !(slotName in deck.defaults.slots)) {
         diagnostics.push(
           diagnostic(
             "LAYOUT_MISSING_SLOT",
@@ -279,6 +300,7 @@ async function compileSlot(
   slot: RawSlot,
   assets: AssetRegistry,
   path: readonly string[],
+  origin: CompiledSlot["origin"] = "source",
 ): Promise<CompiledSlot> {
   const diagnostics: DeckDiagnostic[] = [];
   const content = await compileSlotContent(slot, assets, path, diagnostics);
@@ -287,9 +309,16 @@ async function compileSlot(
     name: slotName,
     kind: content.kind === "renderer" ? "renderer" : content.kind,
     content,
-    origin: "source",
+    origin,
     diagnostics,
   };
+}
+
+function layoutSupportsSlot(
+  layout: { readonly requiredSlots: readonly SlotName[]; readonly optionalSlots: readonly SlotName[] },
+  slotName: SlotName,
+): boolean {
+  return layout.requiredSlots.includes(slotName) || layout.optionalSlots.includes(slotName);
 }
 
 async function compileSlotContent(

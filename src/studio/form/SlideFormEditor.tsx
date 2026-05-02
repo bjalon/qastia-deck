@@ -2,10 +2,13 @@ import type {
   DeckSource,
   DeckSourceChangeReason,
   LayoutEditorField,
+  SlotName,
 } from "../../publicTypes";
 import {
   getSlotImage,
   getSlotMarkdown,
+  hasSlideSlot,
+  removeSlideSlot,
   updateImageSlot,
   updateMarkdownSlot,
 } from "../editableSource";
@@ -14,12 +17,14 @@ type SlideFormEditorProps = {
   readonly source: DeckSource;
   readonly slideId: string;
   readonly fields: readonly LayoutEditorField[];
+  readonly inheritedMarkdownSlots?: ReadonlyMap<SlotName, string>;
   readonly readOnly: boolean;
   readonly onUpdate: (nextSource: DeckSource, reason: DeckSourceChangeReason) => void;
 };
 
 export function SlideFormEditor({
   fields,
+  inheritedMarkdownSlots,
   onUpdate,
   readOnly,
   slideId,
@@ -33,6 +38,7 @@ export function SlideFormEditor({
           source={source}
           slideId={slideId}
           field={field}
+          inheritedMarkdownSlots={inheritedMarkdownSlots}
           readOnly={readOnly}
           onUpdate={onUpdate}
         />
@@ -45,55 +51,92 @@ function EditorField({
   source,
   slideId,
   field,
+  inheritedMarkdownSlots,
   readOnly,
   onUpdate,
 }: {
   readonly source: DeckSource;
   readonly slideId: string;
   readonly field: LayoutEditorField;
+  readonly inheritedMarkdownSlots?: ReadonlyMap<SlotName, string>;
   readonly readOnly: boolean;
   readonly onUpdate: (nextSource: DeckSource, reason: DeckSourceChangeReason) => void;
 }): React.ReactElement | null {
   if (field.kind === "markdown") {
     const isHeadingField = field.blockKind === "heading" || field.slotName === "title";
-    const markdown = getSlotMarkdown(source, slideId, field.slotName);
+    const inheritedMarkdown = isInheritableSlotName(field.slotName)
+      ? inheritedMarkdownSlots?.get(field.slotName)
+      : undefined;
+    const hasInheritedValue = inheritedMarkdown !== undefined;
+    const hasLocalOverride = hasInheritedValue && hasSlideSlot(source, slideId, field.slotName);
+    const markdown = hasInheritedValue && !hasLocalOverride
+      ? inheritedMarkdown
+      : getSlotMarkdown(source, slideId, field.slotName);
     const isSingleLineField = isHeadingField || isSingleLineMarkdownField(field);
     const value = isSingleLineField
       ? singleLineMarkdownValue(markdown, isHeadingField)
       : markdown;
+    const fieldReadOnly = readOnly || (hasInheritedValue && !hasLocalOverride);
+    const control = isSingleLineField ? (
+      <input
+        aria-label={field.label}
+        className="deck-form-input"
+        placeholder=" "
+        value={value}
+        onChange={(event) =>
+          onUpdate(
+            updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
+            "slide-field-edit",
+          )
+        }
+        readOnly={fieldReadOnly}
+      />
+    ) : (
+      <textarea
+        aria-label={field.label}
+        className="deck-form-textarea"
+        placeholder=" "
+        rows={field.minRows ?? 4}
+        value={value}
+        onChange={(event) =>
+          onUpdate(
+            updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
+            "slide-field-edit",
+          )
+        }
+        readOnly={fieldReadOnly}
+      />
+    );
 
     return (
-      <label className="deck-form-field">
+      <div
+        className="deck-form-field"
+        data-inherited={hasInheritedValue && !hasLocalOverride ? "true" : undefined}
+      >
         <span>{field.label}</span>
-        {isSingleLineField ? (
-          <input
-            className="deck-form-input"
-            placeholder=" "
-            value={value}
-            onChange={(event) =>
-              onUpdate(
-                updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
-                "slide-field-edit",
-              )
-            }
-            readOnly={readOnly}
-          />
-        ) : (
-          <textarea
-            className="deck-form-textarea"
-            placeholder=" "
-            rows={field.minRows ?? 4}
-            value={value}
-            onChange={(event) =>
-              onUpdate(
-                updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
-                "slide-field-edit",
-              )
-            }
-            readOnly={readOnly}
-          />
-        )}
-      </label>
+        <div className="deck-form-field__control">
+          {control}
+          {hasInheritedValue ? (
+            <label className="deck-inherited-slot-toggle" title="Override global">
+              <input
+                aria-label={`Override ${field.label} global`}
+                title={`Override ${field.label} global`}
+                type="checkbox"
+                checked={hasLocalOverride}
+                onChange={(event) =>
+                  onUpdate(
+                    event.currentTarget.checked
+                      ? updateMarkdownSlot(source, slideId, field.slotName, inheritedMarkdown)
+                      : removeSlideSlot(source, slideId, field.slotName),
+                    "slide-field-edit",
+                  )
+                }
+                disabled={readOnly}
+              />
+            </label>
+          ) : null}
+        </div>
+      </div>
     );
   }
 
@@ -158,6 +201,10 @@ function EditorField({
   }
 
   return null;
+}
+
+function isInheritableSlotName(slotName: SlotName): boolean {
+  return slotName === "eyebrow" || slotName === "footer";
 }
 
 function isSingleLineMarkdownField(field: LayoutEditorField): boolean {

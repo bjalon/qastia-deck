@@ -83,6 +83,57 @@ describe("compileDeck", () => {
     expect(result.deck.slides[0].slots.get("body")?.origin).toBe("synthetic");
   });
 
+  it("inherits supported default slots without mutating slide slots", async () => {
+    const result = await compileDeck(
+      {
+        content: `
+version: 1
+kind: deck
+metadata:
+  title: Defaults deck
+defaults:
+  slots:
+    eyebrow:
+      markdown: Global eyebrow
+    footer:
+      markdown: Global footer
+slides:
+  - id: cover
+    layout: cover
+    slots:
+      title:
+        markdown: Hello
+  - id: details
+    layout: title-body
+    slots:
+      title:
+        markdown: Details
+      body:
+        markdown: Body
+      footer:
+        markdown: Local footer
+`,
+      },
+      {
+        runtime: defaultDeckRuntime,
+        mode: "editor",
+        locale: "fr-FR",
+      },
+    );
+
+    expect(result.status).toBe("valid");
+    if (result.status === "invalid") {
+      throw new Error("Expected valid deck.");
+    }
+
+    const cover = result.deck.slides[0];
+    expect(cover.slots.get("eyebrow")?.origin).toBe("default");
+    expect(cover.slots.get("footer")?.origin).toBe("default");
+    expect(cover.slots.get("footer")?.content.kind).toBe("markdown");
+    expect(result.deck.slides[1].slots.get("footer")?.origin).toBe("source");
+    expect(result.deck.slides[1].slots.has("eyebrow")).toBe(false);
+  });
+
   it("rejects incomplete decks in strict mode", async () => {
     const result = await compileDeck(
       {

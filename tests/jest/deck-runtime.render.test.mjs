@@ -40,6 +40,31 @@ slides:
 `,
 };
 
+const sourceWithDefaults = {
+  content: `
+version: 1
+kind: deck
+metadata:
+  title: Defaults deck
+theme:
+  id: fintech-light
+defaults:
+  slots:
+    eyebrow:
+      markdown: Global eyebrow
+    footer:
+      markdown: Global footer
+slides:
+  - id: cover
+    layout: cover
+    slots:
+      title:
+        markdown: Stable title
+      subtitle:
+        markdown: Runtime preview
+`,
+};
+
 async function compileValidDeck() {
   const result = await compileDeck(source, {
     runtime: defaultDeckRuntime,
@@ -294,6 +319,54 @@ describe("deck-runtime public rendering", () => {
     expect(screen.getByLabelText("Subtitle")).toHaveValue("Runtime preview");
     expect(screen.getByLabelText("Title").tagName).toBe("INPUT");
     expect(screen.getByLabelText("Subtitle").tagName).toBe("INPUT");
+  });
+
+  it("edits global defaults and enables per-slide overrides", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "defaults-deck",
+        initialValue: sourceWithDefaults,
+        storage: false,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Footer")).toHaveValue("Global footer");
+    });
+
+    expect(screen.getByLabelText("Footer")).toHaveAttribute("readonly");
+
+    fireEvent.click(screen.getByRole("button", { name: "Global" }));
+    expect(screen.getByRole("dialog", { name: "Valeurs globales" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Footer global"), {
+      target: { value: "Updated global footer" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Footer")).toHaveValue("Updated global footer");
+    });
+
+    fireEvent.click(screen.getByLabelText("Override Footer global"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Footer")).not.toHaveAttribute("readonly");
+    });
+    expect(screen.getByLabelText("Override Footer global")).toBeChecked();
+
+    fireEvent.change(screen.getByLabelText("Footer"), {
+      target: { value: "Local footer" },
+    });
+
+    expect(screen.getByLabelText("Footer")).toHaveValue("Local footer");
+
+    fireEvent.click(screen.getByLabelText("Override Footer global"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Footer")).toHaveValue("Updated global footer");
+    });
+    expect(screen.getByLabelText("Footer")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Override Footer global")).not.toBeChecked();
   });
 
   it("switches DeckStudio between form, yaml, and preview views", async () => {

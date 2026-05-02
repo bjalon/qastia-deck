@@ -653,6 +653,17 @@
   position: relative;
 }
 
+.deck-form-field__control {
+  align-items: center;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.deck-form-field__control:has(textarea) {
+  align-items: start;
+}
+
 .deck-form-fieldset {
   background: #ffffff;
   border: 1px solid #e4e7ec;
@@ -758,6 +769,85 @@
 .deck-form-fieldset input[readonly] {
   background: #f2f4f7;
   color: #667085;
+}
+
+.deck-form-field[data-inherited="true"] input,
+.deck-form-field[data-inherited="true"] textarea {
+  border-style: dashed;
+}
+
+.deck-inherited-slot-toggle {
+  align-items: center;
+  display: inline-flex;
+  height: 3.25rem;
+  justify-content: center;
+  justify-self: end;
+  min-width: 2rem;
+}
+
+.deck-inherited-slot-toggle input[type="checkbox"] {
+  accent-color: #155eef;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  height: 1rem;
+  margin: 0;
+  min-height: 1rem;
+  padding: 0;
+  width: 1rem;
+}
+
+.deck-inherited-slot-toggle input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}
+
+.deck-global-defaults-backdrop {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.36);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1.5rem;
+  position: fixed;
+  z-index: 40;
+}
+
+.deck-global-defaults-dialog {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  box-shadow: 0 24px 72px rgba(16, 24, 40, 0.24);
+  display: grid;
+  gap: 1rem;
+  max-width: min(34rem, 100%);
+  padding: 1rem;
+  width: 100%;
+}
+
+.deck-global-defaults-dialog header {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.deck-global-defaults-dialog h3,
+.deck-global-defaults-dialog p {
+  margin: 0;
+}
+
+.deck-global-defaults-dialog p {
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.deck-global-defaults-body {
+  display: grid;
+  gap: 1rem;
 }
 
 .deck-source-editor {

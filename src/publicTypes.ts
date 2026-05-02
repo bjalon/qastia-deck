@@ -224,7 +224,7 @@ export type CompiledSlot = {
   readonly name: SlotName;
   readonly kind: SlotKind;
   readonly content: CompiledContent;
-  readonly origin: "source" | "synthetic";
+  readonly origin: "source" | "default" | "synthetic";
   readonly diagnostics: readonly DeckDiagnostic[];
 };
 
@@ -511,6 +511,7 @@ export type DeckSourceChangeReason =
   | "slide-reorder"
   | "layout-change"
   | "theme-change"
+  | "defaults-edit"
   | "metadata-edit"
   | "raw-source-edit"
   | "version-restore"
