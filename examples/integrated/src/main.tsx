@@ -252,12 +252,6 @@ function IntegratedExample(): React.ReactElement {
   );
 }
 
-createRoot(document.getElementById("root") as HTMLElement).render(
-  <ExampleErrorBoundary>
-    <IntegratedExample />
-  </ExampleErrorBoundary>,
-);
-
 class ExampleErrorBoundary extends Component<
   { readonly children: ReactNode },
   { readonly error: Error | null }
@@ -283,6 +277,12 @@ class ExampleErrorBoundary extends Component<
     return this.props.children;
   }
 }
+
+createRoot(document.getElementById("root") as HTMLElement).render(
+  <ExampleErrorBoundary>
+    <IntegratedExample />
+  </ExampleErrorBoundary>,
+);
 
 function readThemeId(source: DeckSource): string {
   const deck = parseDeckSource(source);
