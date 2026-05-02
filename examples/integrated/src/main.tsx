@@ -1,10 +1,19 @@
-import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createRoot } from "react-dom/client";
 import YAML from "yaml";
 import {
   DeckPresentationOverlay,
   DeckShow,
   DeckStudio,
+  PrintDeck,
   defaultDeckRuntime,
   type CompileDeckResult,
   type DeckPresentationControlsMode,
@@ -90,16 +99,28 @@ const slideThemeOptions = Array.from(defaultDeckRuntime.themes.values()).filter(
   (theme) => theme.id !== "default",
 );
 
+type WorkspaceMenu = "presentation" | "panels" | null;
+
+const previewPanelStorageKey = "qastia-deck-example:panel-preview";
+const diagnosticsPanelStorageKey = "qastia-deck-example:panel-diagnostics";
+
 function IntegratedExample(): React.ReactElement {
   const [source, setSource] = useState<DeckSource>(initialSource);
   const [compileResult, setCompileResult] = useState<CompileDeckResult | null>(null);
-  const [showPreviewPane, setShowPreviewPane] = useState(true);
-  const [showDiagnostics, setShowDiagnostics] = useState(true);
+  const [showPreviewPane, setShowPreviewPane] = useState(() =>
+    readStoredBoolean(previewPanelStorageKey, true),
+  );
+  const [showDiagnostics, setShowDiagnostics] = useState(() =>
+    readStoredBoolean(diagnosticsPanelStorageKey, true),
+  );
   const [presentationControlsMode, setPresentationControlsMode] =
     useState<DeckPresentationControlsMode>("auto");
+  const [openMenu, setOpenMenu] = useState<WorkspaceMenu>(null);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationInitialSlideId, setPresentationInitialSlideId] = useState<string | undefined>();
   const [activePreviewSlideId, setActivePreviewSlideId] = useState<string | undefined>();
+  const pdfExportRef = useRef<HTMLDivElement>(null);
 
   const renderedDeck = useMemo(() => {
     if (compileResult?.status === "valid" || compileResult?.status === "degraded") {
@@ -111,11 +132,58 @@ function IntegratedExample(): React.ReactElement {
   const canPresent = compileResult?.status === "valid" && renderedDeck !== undefined;
   const activeThemeId = readThemeId(source);
 
+  const openPresentation = useCallback(
+    (controlsMode: DeckPresentationControlsMode = "auto"): void => {
+      setPresentationControlsMode(controlsMode);
+      if (!canPresent) {
+        return;
+      }
+      setPresentationInitialSlideId(activePreviewSlideId ?? renderedDeck?.slides[0]?.id);
+      setPresentationOpen(true);
+      setOpenMenu(null);
+    },
+    [activePreviewSlideId, canPresent, renderedDeck],
+  );
+
+  const exportPdf = useCallback(async (): Promise<void> => {
+    if (!renderedDeck || !pdfExportRef.current || pdfExporting) {
+      return;
+    }
+
+    setPdfExporting(true);
+    try {
+      await downloadDeckAsPdf(pdfExportRef.current, renderedDeck.metadata.title);
+    } finally {
+      setPdfExporting(false);
+    }
+  }, [pdfExporting, renderedDeck]);
+
   useEffect(() => {
     if (!canPresent) {
       setPresentationOpen(false);
     }
   }, [canPresent]);
+
+  useEffect(() => {
+    window.localStorage.setItem(previewPanelStorageKey, String(showPreviewPane));
+  }, [showPreviewPane]);
+
+  useEffect(() => {
+    window.localStorage.setItem(diagnosticsPanelStorageKey, String(showDiagnostics));
+  }, [showDiagnostics]);
+
+  useEffect(() => {
+    if (!openMenu) {
+      return;
+    }
+
+    function closeMenu(): void {
+      setOpenMenu(null);
+    }
+
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, [openMenu]);
 
   return (
     <main className="integrated-shell">
@@ -128,19 +196,49 @@ function IntegratedExample(): React.ReactElement {
           <div className="workspace-actions">
             <button
               type="button"
-              className="primary-action"
-              onClick={() => {
-                if (!canPresent) {
-                  return;
-                }
-                setPresentationInitialSlideId(activePreviewSlideId ?? renderedDeck?.slides[0]?.id);
-                setPresentationOpen(true);
-              }}
-              disabled={!canPresent}
-              title={canPresent ? "Afficher en presentation plein ecran" : "Disponible uniquement sans erreur de compilation"}
+              onClick={() => void exportPdf()}
+              disabled={!renderedDeck || pdfExporting}
+              title={renderedDeck ? "Télécharger les slides en PDF" : "Disponible quand le deck est compilable"}
             >
-              Presentation
+              {pdfExporting ? "Export..." : "Télécharger PDF"}
             </button>
+            <div className="split-action" onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                className="primary-action split-action-main"
+                onClick={() => openPresentation("auto")}
+                disabled={!canPresent}
+                title={canPresent ? "Afficher en presentation plein ecran" : "Disponible uniquement sans erreur de compilation"}
+              >
+                Presentation
+              </button>
+              <button
+                type="button"
+                className="primary-action split-action-toggle"
+                aria-label="Choisir le mode de presentation"
+                aria-expanded={openMenu === "presentation"}
+                onClick={() => setOpenMenu((current) => (current === "presentation" ? null : "presentation"))}
+                disabled={!canPresent}
+              >
+                <span aria-hidden="true">⌄</span>
+              </button>
+              {openMenu === "presentation" ? (
+                <div className="workspace-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => openPresentation("auto")}>
+                    <span>Auto</span>
+                    {presentationControlsMode === "auto" ? <span className="menu-check">✓</span> : null}
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => openPresentation("visible")}>
+                    <span>Boutons visibles</span>
+                    {presentationControlsMode === "visible" ? <span className="menu-check">✓</span> : null}
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => openPresentation("hidden")}>
+                    <span>Boutons cachés</span>
+                    {presentationControlsMode === "hidden" ? <span className="menu-check">✓</span> : null}
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <label className="workspace-select">
               <span>Style des slides</span>
               <select
@@ -157,23 +255,37 @@ function IntegratedExample(): React.ReactElement {
                 ))}
               </select>
             </label>
-            <label className="workspace-select">
-              <span>Presentation controls</span>
-              <select
-                value={presentationControlsMode}
-                onChange={(event) => setPresentationControlsMode(event.currentTarget.value as DeckPresentationControlsMode)}
+            <div className="menu-action" onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                aria-expanded={openMenu === "panels"}
+                onClick={() => setOpenMenu((current) => (current === "panels" ? null : "panels"))}
               >
-                <option value="visible">Boutons visibles</option>
-                <option value="hidden">Boutons hidden</option>
-                <option value="auto">Auto</option>
-              </select>
-            </label>
-            <button type="button" onClick={() => setShowPreviewPane((value) => !value)}>
-              {showPreviewPane ? "Masquer preview" : "Afficher preview"}
-            </button>
-            <button type="button" onClick={() => setShowDiagnostics((value) => !value)}>
-              {showDiagnostics ? "Masquer diagnostics" : "Afficher diagnostics"}
-            </button>
+                Panels <span aria-hidden="true">⌄</span>
+              </button>
+              {openMenu === "panels" ? (
+                <div className="workspace-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={showPreviewPane}
+                    onClick={() => setShowPreviewPane((value) => !value)}
+                  >
+                    <span>Preview</span>
+                    {showPreviewPane ? <span className="menu-check">✓</span> : null}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={showDiagnostics}
+                    onClick={() => setShowDiagnostics((value) => !value)}
+                  >
+                    <span>Diagnostics</span>
+                    {showDiagnostics ? <span className="menu-check">✓</span> : null}
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <div className="status-strip">
               <span data-status={compileResult?.status ?? "pending"}>
                 {compileResult?.status ?? "pending"}
@@ -252,6 +364,11 @@ function IntegratedExample(): React.ReactElement {
           onOpenChange={(event) => setPresentationOpen(event.open)}
         />
       ) : null}
+      {renderedDeck ? (
+        <div ref={pdfExportRef} className="pdf-export-host" aria-hidden="true">
+          <PrintDeck deck={renderedDeck} />
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -318,6 +435,69 @@ function parseDeckSource(source: DeckSource): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+function readStoredBoolean(key: string, fallback: boolean): boolean {
+  const value = window.localStorage.getItem(key);
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return fallback;
+}
+
+async function downloadDeckAsPdf(root: HTMLElement, title: string): Promise<void> {
+  const [{ jsPDF }, html2canvasModule] = await Promise.all([
+    import("jspdf"),
+    import("html2canvas"),
+  ]);
+  const html2canvas = html2canvasModule.default;
+  const pages = Array.from(root.querySelectorAll<HTMLElement>(".deck-print-page"));
+
+  if (pages.length === 0) {
+    return;
+  }
+
+  await document.fonts?.ready;
+
+  const pageWidth = 1600;
+  const pageHeight = 900;
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [pageWidth, pageHeight],
+    compress: true,
+  });
+
+  for (const [index, page] of pages.entries()) {
+    const canvas = await html2canvas(page, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+      windowWidth: pageWidth,
+      windowHeight: pageHeight,
+    });
+    const image = canvas.toDataURL("image/jpeg", 0.96);
+
+    if (index > 0) {
+      pdf.addPage([pageWidth, pageHeight], "landscape");
+    }
+
+    pdf.addImage(image, "JPEG", 0, 0, pageWidth, pageHeight);
+  }
+
+  pdf.save(`${slugifyFilename(title || "deck")}.pdf`);
+}
+
+function slugifyFilename(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-|-$/gu, "") || "deck";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
