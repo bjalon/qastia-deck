@@ -1,18 +1,22 @@
-import { a as r, D as a } from "./DeckStudio-0dq-FHH-.js";
+import { a, D as t } from "./DeckStudio-0dq-FHH-.js";
 import { c } from "./hash-BGAdcMpD.js";
-import { D } from "./DeckPresentationOverlay-BmQk5bCl.js";
-import { P as s } from "./PrintDeck-B_ihci-x.js";
-import { c as p, d as x } from "./defaultDeckRuntime-BlLpFtOg.js";
-import { d as l } from "./themeStyle-CyBLqMAf.js";
-import { a as n } from "./DeckShow-rbZ58u0e.js";
+import { D as s } from "./DeckPresentationOverlay-BmQk5bCl.js";
+import { D as d, a as m, P as f, d as p, u as l } from "./DeckPdfDownloadButton-Cn4jSmRe.js";
+import { c as x, d as u } from "./defaultDeckRuntime-BlLpFtOg.js";
+import { d as i } from "./themeStyle-CyBLqMAf.js";
+import { a as E } from "./DeckShow-rbZ58u0e.js";
 export {
-  r as DebugDeckFallback,
-  D as DeckPresentationOverlay,
-  n as DeckShow,
-  a as DeckStudio,
-  s as PrintDeck,
+  a as DebugDeckFallback,
+  d as DeckPdfDownloadButton,
+  m as DeckPdfExportHost,
+  s as DeckPresentationOverlay,
+  E as DeckShow,
+  t as DeckStudio,
+  f as PrintDeck,
   c as compileDeck,
-  p as createDeckRuntime,
-  l as deckThemeStyle,
-  x as defaultDeckRuntime
+  x as createDeckRuntime,
+  i as deckThemeStyle,
+  u as defaultDeckRuntime,
+  p as downloadDeckPdfFromElement,
+  l as useDeckPdfExport
 };

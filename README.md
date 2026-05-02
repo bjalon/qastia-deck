@@ -117,9 +117,48 @@ export function DeckPreview({ source }: { readonly source: DeckSource }): React.
 - `DeckShow` : lecteur de deck pour un affichage intégré ou viewer.
 - `DeckPresentationOverlay` : présentation plein écran contrôlée depuis l'application.
 - `PrintDeck` : rendu orienté impression/export PDF.
+- `DeckPdfDownloadButton` : bouton React prêt à l'emploi pour télécharger un deck en PDF.
 - `DebugDeckFallback` : affichage de fallback lorsque la source est invalide.
 - `compileDeck` : compilation d'une source YAML/Markdown vers un modèle de deck typé.
 - `createDeckRuntime` : création d'un runtime personnalisé avec layouts, renderers, thèmes et transitions.
+
+## Export PDF direct
+
+Pour un bouton prêt à l'emploi :
+
+```tsx
+import { DeckPdfDownloadButton } from "@bjalon/deck-runtime/pdf";
+import "@bjalon/deck-runtime/styles.css";
+
+export function PdfAction({ deck }: { readonly deck: CompiledDeck }): React.ReactElement {
+  return (
+    <DeckPdfDownloadButton deck={deck}>
+      Télécharger PDF
+    </DeckPdfDownloadButton>
+  );
+}
+```
+
+Pour composer une UI custom, utiliser le hook :
+
+```tsx
+import { DeckPdfExportHost, useDeckPdfExport } from "@bjalon/deck-runtime/pdf";
+
+function CustomPdfAction({ deck }: { readonly deck: CompiledDeck }) {
+  const { exportHostRef, exportPdf, exporting } = useDeckPdfExport({ deck });
+
+  return (
+    <>
+      <button type="button" onClick={() => void exportPdf()} disabled={exporting}>
+        {exporting ? "Export..." : "PDF"}
+      </button>
+      <DeckPdfExportHost ref={exportHostRef} deck={deck} />
+    </>
+  );
+}
+```
+
+Le bouton et le hook génèrent un PDF client-side en rasterisant les slides. `jspdf` et `html2canvas` sont chargés uniquement au moment de l'export.
 
 ## Exemple intégré
 

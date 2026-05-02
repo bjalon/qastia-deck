@@ -496,5 +496,8 @@ describe("deck-runtime public rendering", () => {
     await expect(import("../../dist/compiler.js")).resolves.toHaveProperty("compileDeck");
     await expect(import("../../dist/runtime.js")).resolves.toHaveProperty("createDeckRuntime");
     await expect(import("../../dist/pdf.js")).resolves.toHaveProperty("PrintDeck");
+    await expect(import("../../dist/pdf.js")).resolves.toHaveProperty("DeckPdfDownloadButton");
+    await expect(import("../../dist/pdf.js")).resolves.toHaveProperty("useDeckPdfExport");
+    await expect(import("../../dist/pdf.js")).resolves.toHaveProperty("downloadDeckPdfFromElement");
   });
 });

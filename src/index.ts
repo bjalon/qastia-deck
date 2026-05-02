@@ -3,12 +3,25 @@ import "./styles/deck-runtime.css";
 export { DebugDeckFallback } from "./debug/DebugDeckFallback";
 export { compileDeck } from "./compiler/compileDeck";
 export { DeckPresentationOverlay } from "./presentation/DeckPresentationOverlay";
+export { DeckPdfDownloadButton } from "./pdf/DeckPdfDownloadButton";
+export { DeckPdfExportHost } from "./pdf/DeckPdfExportHost";
 export { PrintDeck } from "./pdf/PrintDeck";
+export { downloadDeckPdfFromElement } from "./pdf/downloadDeckPdfFromElement";
+export { useDeckPdfExport } from "./pdf/useDeckPdfExport";
 export { createDeckRuntime } from "./runtime/createDeckRuntime";
 export { defaultDeckRuntime } from "./runtime/defaultDeckRuntime";
 export { deckThemeStyle } from "./runtime/themeStyle";
 export { DeckShow } from "./slideshow/DeckShow";
 export { DeckStudio } from "./studio/DeckStudio";
+
+export type { DeckPdfDownloadButtonProps } from "./pdf/DeckPdfDownloadButton";
+export type { DeckPdfExportHostProps } from "./pdf/DeckPdfExportHost";
+export type { DeckPdfRasterExportOptions } from "./pdf/downloadDeckPdfFromElement";
+export type {
+  DeckPdfExportStatus,
+  UseDeckPdfExportOptions,
+  UseDeckPdfExportResult,
+} from "./pdf/useDeckPdfExport";
 
 export type {
   ActionOrigin,

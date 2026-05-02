@@ -2308,11 +2308,39 @@ export type PdfExportRequest = {
 
 export type PdfExportResult =
   | { readonly status: "opened-print-dialog" }
+  | { readonly status: "downloaded" }
   | { readonly status: "blob"; readonly blob: Blob }
   | { readonly status: "failed"; readonly diagnostics: readonly DeckDiagnostic[] };
 ```
 
 La première version doit implémenter `browser-print`.
+
+### 23.5. Export PDF direct client-side
+
+La librairie expose aussi une surface plus simple pour les applications React :
+
+```tsx
+<DeckPdfDownloadButton deck={deck}>
+  Télécharger PDF
+</DeckPdfDownloadButton>
+```
+
+Pour les interfaces custom :
+
+```tsx
+const { exportHostRef, exportPdf, exporting } = useDeckPdfExport({ deck });
+
+return (
+  <>
+    <button type="button" onClick={() => void exportPdf()} disabled={exporting}>
+      PDF
+    </button>
+    <DeckPdfExportHost ref={exportHostRef} deck={deck} />
+  </>
+);
+```
+
+La fonction bas niveau `downloadDeckPdfFromElement` prend un élément DOM contenant les `.deck-print-page` et télécharge directement un PDF. Le rendu client-side repose sur `PrintDeck`, `html2canvas` et `jspdf`.
 
 ---
 

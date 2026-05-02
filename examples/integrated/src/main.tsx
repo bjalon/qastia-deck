@@ -3,7 +3,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -11,9 +10,9 @@ import { createRoot } from "react-dom/client";
 import YAML from "yaml";
 import {
   DeckPresentationOverlay,
+  DeckPdfDownloadButton,
   DeckShow,
   DeckStudio,
-  PrintDeck,
   defaultDeckRuntime,
   type CompileDeckResult,
   type DeckPresentationControlsMode,
@@ -116,11 +115,9 @@ function IntegratedExample(): React.ReactElement {
   const [presentationControlsMode, setPresentationControlsMode] =
     useState<DeckPresentationControlsMode>("auto");
   const [openMenu, setOpenMenu] = useState<WorkspaceMenu>(null);
-  const [pdfExporting, setPdfExporting] = useState(false);
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationInitialSlideId, setPresentationInitialSlideId] = useState<string | undefined>();
   const [activePreviewSlideId, setActivePreviewSlideId] = useState<string | undefined>();
-  const pdfExportRef = useRef<HTMLDivElement>(null);
 
   const renderedDeck = useMemo(() => {
     if (compileResult?.status === "valid" || compileResult?.status === "degraded") {
@@ -144,19 +141,6 @@ function IntegratedExample(): React.ReactElement {
     },
     [activePreviewSlideId, canPresent, renderedDeck],
   );
-
-  const exportPdf = useCallback(async (): Promise<void> => {
-    if (!renderedDeck || !pdfExportRef.current || pdfExporting) {
-      return;
-    }
-
-    setPdfExporting(true);
-    try {
-      await downloadDeckAsPdf(pdfExportRef.current, renderedDeck.metadata.title);
-    } finally {
-      setPdfExporting(false);
-    }
-  }, [pdfExporting, renderedDeck]);
 
   useEffect(() => {
     if (!canPresent) {
@@ -194,14 +178,16 @@ function IntegratedExample(): React.ReactElement {
             <h1>Support intégré</h1>
           </div>
           <div className="workspace-actions">
-            <button
-              type="button"
-              onClick={() => void exportPdf()}
-              disabled={!renderedDeck || pdfExporting}
-              title={renderedDeck ? "Télécharger les slides en PDF" : "Disponible quand le deck est compilable"}
-            >
-              {pdfExporting ? "Export..." : "Télécharger PDF"}
-            </button>
+            {renderedDeck ? (
+              <DeckPdfDownloadButton
+                deck={renderedDeck}
+                title="Télécharger les slides en PDF"
+              />
+            ) : (
+              <button type="button" disabled title="Disponible quand le deck est compilable">
+                Télécharger PDF
+              </button>
+            )}
             <div className="split-action" onClick={(event) => event.stopPropagation()}>
               <button
                 type="button"
@@ -364,11 +350,6 @@ function IntegratedExample(): React.ReactElement {
           onOpenChange={(event) => setPresentationOpen(event.open)}
         />
       ) : null}
-      {renderedDeck ? (
-        <div ref={pdfExportRef} className="pdf-export-host" aria-hidden="true">
-          <PrintDeck deck={renderedDeck} />
-        </div>
-      ) : null}
     </main>
   );
 }
@@ -446,58 +427,6 @@ function readStoredBoolean(key: string, fallback: boolean): boolean {
     return false;
   }
   return fallback;
-}
-
-async function downloadDeckAsPdf(root: HTMLElement, title: string): Promise<void> {
-  const [{ jsPDF }, html2canvasModule] = await Promise.all([
-    import("jspdf"),
-    import("html2canvas"),
-  ]);
-  const html2canvas = html2canvasModule.default;
-  const pages = Array.from(root.querySelectorAll<HTMLElement>(".deck-print-page"));
-
-  if (pages.length === 0) {
-    return;
-  }
-
-  await document.fonts?.ready;
-
-  const pageWidth = 1600;
-  const pageHeight = 900;
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "px",
-    format: [pageWidth, pageHeight],
-    compress: true,
-  });
-
-  for (const [index, page] of pages.entries()) {
-    const canvas = await html2canvas(page, {
-      backgroundColor: "#ffffff",
-      scale: 2,
-      useCORS: true,
-      windowWidth: pageWidth,
-      windowHeight: pageHeight,
-    });
-    const image = canvas.toDataURL("image/jpeg", 0.96);
-
-    if (index > 0) {
-      pdf.addPage([pageWidth, pageHeight], "landscape");
-    }
-
-    pdf.addImage(image, "JPEG", 0, 0, pageWidth, pageHeight);
-  }
-
-  pdf.save(`${slugifyFilename(title || "deck")}.pdf`);
-}
-
-function slugifyFilename(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-|-$/gu, "") || "deck";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

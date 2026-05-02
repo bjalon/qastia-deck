@@ -37,6 +37,8 @@ export type DiagnosticCode =
   | "RENDERER_UNKNOWN_KIND"
   | "RENDER_OVERFLOW_WARNING"
   | "PDF_UNSUPPORTED_RENDERER"
+  | "PDF_NO_PRINT_PAGES"
+  | "PDF_EXPORT_FAILED"
   | "STORAGE_QUOTA_EXCEEDED"
   | "STORAGE_VERSION_CORRUPTED";
 
@@ -817,5 +819,6 @@ export type PdfExportRequest = {
 
 export type PdfExportResult =
   | { readonly status: "opened-print-dialog" }
+  | { readonly status: "downloaded" }
   | { readonly status: "blob"; readonly blob: Blob }
   | { readonly status: "failed"; readonly diagnostics: readonly DeckDiagnostic[] };

@@ -13,7 +13,7 @@ compiler seul          -> compileDeck
 preview seule          -> DeckShow
 presentation seule     -> DeckPresentationOverlay
 edition integree       -> DeckStudio
-print / PDF            -> PrintDeck
+print / PDF            -> PrintDeck / DeckPdfDownloadButton
 runtime extensible     -> createDeckRuntime
 ```
 
@@ -359,6 +359,16 @@ CompiledDeck -> SlideRenderer -> Layout -> ContentRenderer
 ```
 
 Le print est un target de rendu, pas un moteur parallele.
+
+L'export PDF direct est expose en trois niveaux :
+
+```txt
+DeckPdfDownloadButton      -> bouton React pret a l'emploi
+useDeckPdfExport           -> hook pour UI custom
+downloadDeckPdfFromElement -> fonction headless sur DOM deja rendu
+```
+
+Le rendu PDF client-side rasterise les pages issues de `PrintDeck`. `jspdf` et `html2canvas` sont charges dynamiquement au moment de l'export, et l'entree `@bjalon/deck-runtime/pdf` permet de garder cette surface separee du viewer simple.
 
 ## 16. API Publique
 

@@ -1,0 +1,1 @@
+{"version":3,"file":"DeckPdfExportHost.d.ts","sourceRoot":"","sources":["../../../src/pdf/DeckPdfExportHost.tsx"],"names":[],"mappings":"AACA,OAAO,KAAK,KAAK,MAAM,OAAO,CAAC;AAC/B,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAGnD,MAAM,MAAM,sBAAsB,GAAG;IACnC,QAAQ,CAAC,IAAI,EAAE,YAAY,CAAC;IAC5B,QAAQ,CAAC,SAAS,CAAC,EAAE,MAAM,CAAC;CAC7B,CAAC;AAEF,eAAO,MAAM,iBAAiB,+FAY7B,CAAC"}

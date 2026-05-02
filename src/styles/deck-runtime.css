@@ -929,6 +929,33 @@
   display: none;
 }
 
+.deck-pdf-export-host {
+  background: #ffffff;
+  left: -10000px;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: 1600px;
+  z-index: -1;
+}
+
+.deck-pdf-export-host .deck-print-root {
+  display: block;
+}
+
+.deck-pdf-export-host .deck-print-page {
+  background: #ffffff;
+  break-after: auto;
+  height: 900px;
+  overflow: hidden;
+  page-break-after: auto;
+  width: 1600px;
+}
+
+.deck-pdf-export-host .deck-slide-frame {
+  box-shadow: none;
+}
+
 @media (max-width: 900px) {
   .deck-studio-root {
     grid-template-columns: 1fr;

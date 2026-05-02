@@ -32,6 +32,8 @@ export default defineConfig({
         "@codemirror/state",
         "@codemirror/view",
         "@hookform/resolvers",
+        "html2canvas",
+        "jspdf",
         "react-hook-form",
         "unified",
       ],
