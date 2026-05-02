@@ -321,6 +321,44 @@ describe("deck-runtime public rendering", () => {
     expect(screen.getByLabelText("Subtitle").tagName).toBe("INPUT");
   });
 
+  it("edits the slideshow title on double click and commits on blur", async () => {
+    const onChange = jest.fn();
+
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "editable-title-deck",
+        initialValue: source,
+        storage: false,
+        onChange,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Stable deck")).toBeInTheDocument();
+    });
+
+    fireEvent.doubleClick(screen.getByText("Stable deck"));
+    const titleInput = screen.getByLabelText("Titre du slideshow");
+
+    expect(titleInput).toHaveValue("Stable deck");
+
+    fireEvent.change(titleInput, { target: { value: "Updated deck title" } });
+    fireEvent.blur(titleInput);
+
+    await waitFor(() => {
+      expect(screen.getByText("Updated deck title")).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText("Titre du slideshow")).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: expect.stringContaining("title: Updated deck title"),
+      }),
+      expect.objectContaining({
+        reason: "metadata-edit",
+      }),
+    );
+  });
+
   it("inserts a new slide after the selected slide", async () => {
     render(
       React.createElement(DeckStudio, {

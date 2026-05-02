@@ -32,6 +32,7 @@ import {
   hasDefaultSlot,
   moveSlide,
   type SlideMovePlacement,
+  updateDeckTitle,
   updateSlideLayout,
 } from "./editableSource";
 import { SlideFormEditor } from "./form/SlideFormEditor";
@@ -70,6 +71,8 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     studioOptions?.editing?.defaultMode ?? "form",
   );
   const [globalDefaultsOpen, setGlobalDefaultsOpen] = useState(false);
+  const [deckTitleEditing, setDeckTitleEditing] = useState(false);
+  const [deckTitleDraft, setDeckTitleDraft] = useState("");
   const [slideDragState, setSlideDragState] = useState<{
     readonly draggedSlideId: string;
     readonly targetSlideId?: string;
@@ -484,6 +487,30 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const effectiveViewMode = availableViewModes.includes(viewMode) ? viewMode : availableViewModes[0];
   const previewThemeClassName = compiledDeck?.theme.cssClassName ?? "";
   const previewThemeStyle = compiledDeck ? deckThemeStyle(compiledDeck.theme) : undefined;
+  const deckTitle = compiledDeck?.metadata.title ?? "Deck";
+
+  function startDeckTitleEdit(): void {
+    if (readOnly) {
+      return;
+    }
+    setDeckTitleDraft(deckTitle);
+    setDeckTitleEditing(true);
+  }
+
+  function commitDeckTitleEdit(): void {
+    const nextTitle = deckTitleDraft.trim() || deckTitle;
+    setDeckTitleEditing(false);
+    setDeckTitleDraft(nextTitle);
+
+    if (nextTitle !== deckTitle) {
+      updateSource(updateDeckTitle(source, nextTitle), "metadata-edit", selectedSlide?.id);
+    }
+  }
+
+  function cancelDeckTitleEdit(): void {
+    setDeckTitleEditing(false);
+    setDeckTitleDraft(deckTitle);
+  }
 
   useEffect(() => {
     if (!focusEditorAfterSlideSelectRef.current) {
@@ -519,12 +546,35 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       {layoutOptions.showSlideRail ? (
         <aside className="deck-studio-rail" style={{ width: layoutOptions.slideRailWidthPx }}>
           <header>
-            <strong>{compiledDeck?.metadata.title ?? "Deck"}</strong>
-            {features.allowAddSlide ? (
-              <button type="button" onClick={handleAddSlide} disabled={readOnly}>
-                Add
-              </button>
-            ) : null}
+            {deckTitleEditing ? (
+              <input
+                className="deck-studio-title-input"
+                aria-label="Titre du slideshow"
+                value={deckTitleDraft}
+                autoFocus
+                onFocus={(event) => event.currentTarget.select()}
+                onChange={(event) => setDeckTitleDraft(event.currentTarget.value)}
+                onBlur={commitDeckTitleEdit}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    commitDeckTitleEdit();
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelDeckTitleEdit();
+                  }
+                }}
+              />
+            ) : (
+              <strong
+                className="deck-studio-title-label"
+                title={readOnly ? undefined : "Double-cliquer pour modifier"}
+                onDoubleClick={startDeckTitleEdit}
+              >
+                {deckTitle}
+              </strong>
+            )}
           </header>
           <nav aria-label="Slides">
             {compiledDeck?.slides.map((slide) => (
@@ -606,6 +656,11 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             >
               Global
             </button>
+            {features.allowAddSlide ? (
+              <button type="button" onClick={handleAddSlide} disabled={readOnly}>
+                Add
+              </button>
+            ) : null}
             {features.allowDuplicateSlide && selectedSlide ? (
               <button
                 type="button"

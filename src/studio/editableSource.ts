@@ -2,8 +2,13 @@ import YAML from "yaml";
 import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 
 type MutableDeck = Record<string, unknown> & {
+  metadata?: MutableMetadata;
   defaults?: MutableDefaults;
   slides?: MutableSlide[];
+};
+
+type MutableMetadata = Record<string, unknown> & {
+  title?: string;
 };
 
 type MutableDefaults = Record<string, unknown> & {
@@ -103,6 +108,19 @@ export function updateDefaultMarkdownSlot(
 
   const slots = ensureDefaultSlots(deck);
   slots[slotName] = { markdown };
+  return stringifyMutableDeck(source, deck);
+}
+
+export function updateDeckTitle(source: DeckSource, title: string): DeckSource {
+  const deck = parseMutableDeck(source);
+  if (!deck) {
+    return source;
+  }
+
+  if (!isRecord(deck.metadata)) {
+    deck.metadata = {};
+  }
+  deck.metadata.title = title;
   return stringifyMutableDeck(source, deck);
 }
 

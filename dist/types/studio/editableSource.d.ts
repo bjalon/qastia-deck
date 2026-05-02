@@ -1,7 +1,11 @@
 import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 type MutableDeck = Record<string, unknown> & {
+    metadata?: MutableMetadata;
     defaults?: MutableDefaults;
     slides?: MutableSlide[];
+};
+type MutableMetadata = Record<string, unknown> & {
+    title?: string;
 };
 type MutableDefaults = Record<string, unknown> & {
     slots?: Record<string, unknown>;
@@ -21,6 +25,7 @@ export declare function hasSlideSlot(source: DeckSource, slideId: string, slotNa
 export declare function getDefaultSlotMarkdown(source: DeckSource, slotName: SlotName): string;
 export declare function hasDefaultSlot(source: DeckSource, slotName: SlotName): boolean;
 export declare function updateDefaultMarkdownSlot(source: DeckSource, slotName: SlotName, markdown: string): DeckSource;
+export declare function updateDeckTitle(source: DeckSource, title: string): DeckSource;
 export declare function updateImageSlot(source: DeckSource, slideId: string, slotName: SlotName, image: {
     readonly assetId?: string;
     readonly src?: string;
