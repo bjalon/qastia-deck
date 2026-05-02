@@ -50,6 +50,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     readOnly,
     storage,
   } = props;
+  const studioOptions = props.options;
   const runtime = props.runtime ?? defaultDeckRuntime;
   const controlled = props.mode === "controlled";
   const [internalSource, setInternalSource] = useState<DeckSource>(
@@ -60,7 +61,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const [selectedSlideId, setSelectedSlideId] = useState<string | undefined>(
     initialSelectedSlideId,
   );
-  const [sourceMode, setSourceMode] = useState(false);
+  const [sourceMode, setSourceMode] = useState(studioOptions?.editing?.defaultMode === "source");
   const [versions, setVersions] = useState<readonly DeckVersionSummary[]>([]);
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
@@ -68,14 +69,76 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   onCompileRef.current = onCompile;
   onErrorRef.current = onError;
 
-  const layoutOptions = useMemo(
-    () => ({ ...defaultDeckStudioLayoutOptions, ...layoutProps }),
-    [layoutProps],
-  );
-  const features = useMemo(
-    () => ({ ...defaultDeckStudioFeatureFlags, ...featuresProps }),
-    [featuresProps],
-  );
+  const layoutOptions = useMemo(() => {
+    const nextOptions = { ...defaultDeckStudioLayoutOptions, ...layoutProps };
+    const panels = studioOptions?.panels;
+
+    if (panels?.slideRail === false) {
+      nextOptions.showSlideRail = false;
+    } else if (panels?.slideRail) {
+      nextOptions.showSlideRail = panels.slideRail.visibleDefault ?? nextOptions.showSlideRail;
+      nextOptions.slideRailWidthPx = panels.slideRail.widthPx ?? nextOptions.slideRailWidthPx;
+    }
+
+    if (panels?.inspector === false) {
+      nextOptions.showInspector = false;
+    } else if (panels?.inspector) {
+      nextOptions.showInspector = panels.inspector.visibleDefault ?? nextOptions.showInspector;
+      nextOptions.inspectorWidthPx = panels.inspector.widthPx ?? nextOptions.inspectorWidthPx;
+    }
+
+    if (panels?.diagnostics === false) {
+      nextOptions.showDiagnosticsPanel = false;
+    } else if (panels?.diagnostics) {
+      nextOptions.showDiagnosticsPanel = panels.diagnostics.visibleDefault ?? nextOptions.showDiagnosticsPanel;
+    }
+
+    if (panels?.activeSlidePreview === false) {
+      nextOptions.showActiveSlidePreview = false;
+    } else if (panels?.activeSlidePreview) {
+      nextOptions.showActiveSlidePreview =
+        panels.activeSlidePreview.visibleDefault ?? nextOptions.showActiveSlidePreview;
+    }
+
+    if (panels?.versionHistory === false) {
+      nextOptions.showVersionHistory = false;
+    } else if (panels?.versionHistory) {
+      nextOptions.showVersionHistory = panels.versionHistory.visibleDefault ?? nextOptions.showVersionHistory;
+    }
+
+    if (studioOptions?.editing?.allowSourceMode === false) {
+      nextOptions.showSourceModeToggle = false;
+    }
+
+    return nextOptions;
+  }, [layoutProps, studioOptions]);
+  const features = useMemo(() => {
+    const nextFeatures = { ...defaultDeckStudioFeatureFlags, ...featuresProps };
+
+    if (studioOptions?.editing?.allowSourceMode !== undefined) {
+      nextFeatures.allowRawSourceEdit = studioOptions.editing.allowSourceMode;
+    }
+
+    if (studioOptions?.editing?.allowLayoutChange !== undefined) {
+      nextFeatures.allowLayoutChange = studioOptions.editing.allowLayoutChange;
+    }
+
+    if (studioOptions?.layoutSelector?.enabled !== undefined) {
+      nextFeatures.allowLayoutChange = studioOptions.layoutSelector.enabled;
+    }
+
+    if (studioOptions?.panels?.slideRail) {
+      if (studioOptions.panels.slideRail.allowReorder !== undefined) {
+        nextFeatures.allowReorderSlides = studioOptions.panels.slideRail.allowReorder;
+      }
+      if (studioOptions.panels.slideRail.allowAddDelete !== undefined) {
+        nextFeatures.allowAddSlide = studioOptions.panels.slideRail.allowAddDelete;
+        nextFeatures.allowDeleteSlide = studioOptions.panels.slideRail.allowAddDelete;
+      }
+    }
+
+    return nextFeatures;
+  }, [featuresProps, studioOptions]);
   const storageConfig = useMemo(
     () =>
       storage === false
@@ -322,31 +385,38 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const diagnostics = compileResult?.diagnostics ?? [];
 
   return (
-    <div className="deck-studio-root" data-density={layoutOptions.density}>
-      <aside className="deck-studio-rail" style={{ width: layoutOptions.slideRailWidthPx }}>
-        <header>
-          <strong>{compiledDeck?.metadata.title ?? "Deck"}</strong>
-          {features.allowAddSlide ? (
-            <button type="button" onClick={() => updateSource(addSlide(source), "slide-add")} disabled={readOnly}>
-              Add
-            </button>
-          ) : null}
-        </header>
-        <nav aria-label="Slides">
-          {compiledDeck?.slides.map((slide) => (
-            <button
-              type="button"
-              key={slide.id}
-              className={slide.id === selectedSlide?.id ? "is-active" : undefined}
-              onClick={() => selectSlide(slide.id)}
-            >
-              <span>{slide.index + 1}</span>
-              <span>{slide.id}</span>
-              <small>{slide.layout.name}</small>
-            </button>
-          ))}
-        </nav>
-      </aside>
+    <div
+      className="deck-studio-root"
+      data-density={layoutOptions.density}
+      data-slide-rail={layoutOptions.showSlideRail ? "visible" : "hidden"}
+      data-inspector={layoutOptions.showInspector ? "visible" : "hidden"}
+    >
+      {layoutOptions.showSlideRail ? (
+        <aside className="deck-studio-rail" style={{ width: layoutOptions.slideRailWidthPx }}>
+          <header>
+            <strong>{compiledDeck?.metadata.title ?? "Deck"}</strong>
+            {features.allowAddSlide ? (
+              <button type="button" onClick={() => updateSource(addSlide(source), "slide-add")} disabled={readOnly}>
+                Add
+              </button>
+            ) : null}
+          </header>
+          <nav aria-label="Slides">
+            {compiledDeck?.slides.map((slide) => (
+              <button
+                type="button"
+                key={slide.id}
+                className={slide.id === selectedSlide?.id ? "is-active" : undefined}
+                onClick={() => selectSlide(slide.id)}
+              >
+                <span>{slide.index + 1}</span>
+                <span>{slide.id}</span>
+                <small>{slide.layout.name}</small>
+              </button>
+            ))}
+          </nav>
+        </aside>
+      ) : null}
 
       <main className="deck-studio-main">
         <header className="deck-studio-header">

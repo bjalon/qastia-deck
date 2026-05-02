@@ -2,8 +2,11 @@ import type { DeckPresentationControlsMode } from "../publicTypes";
 type DeckNavigationToolbarProps = {
     readonly activeIndex: number;
     readonly slideCount: number;
+    readonly placement: "top" | "bottom";
+    readonly showPreviousNext: boolean;
+    readonly showCounter: boolean;
     readonly showPresentationButton: boolean;
-    readonly canOpenPresentation: boolean;
+    readonly presentationDisabled: boolean;
     readonly showPresentationControlsModeSelect: boolean;
     readonly presentationControlsMode: DeckPresentationControlsMode;
     readonly presentationButtonLabel: string;
@@ -13,6 +16,6 @@ type DeckNavigationToolbarProps = {
     readonly onPrevious: () => void;
     readonly onNext: () => void;
 };
-export declare function DeckNavigationToolbar({ activeIndex, canOpenPresentation, onNext, onOpenPresentation, onPresentationControlsModeChange, onPrevious, presentationButtonLabel, presentationControlsMode, presentationUnavailableLabel, showPresentationButton, showPresentationControlsModeSelect, slideCount, }: DeckNavigationToolbarProps): React.ReactElement;
+export declare function DeckNavigationToolbar({ activeIndex, onNext, onOpenPresentation, onPresentationControlsModeChange, onPrevious, placement, presentationButtonLabel, presentationControlsMode, presentationDisabled, presentationUnavailableLabel, showCounter, showPresentationButton, showPresentationControlsModeSelect, showPreviousNext, slideCount, }: DeckNavigationToolbarProps): React.ReactElement;
 export {};
 //# sourceMappingURL=DeckNavigationToolbar.d.ts.map

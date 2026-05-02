@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  DeckPresentationOverlay,
   DeckShow,
   DeckStudio,
   defaultDeckRuntime,
@@ -87,6 +88,8 @@ function IntegratedExample(): React.ReactElement {
   const [showDiagnostics, setShowDiagnostics] = useState(true);
   const [presentationControlsMode, setPresentationControlsMode] =
     useState<DeckPresentationControlsMode>("auto");
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const [presentationInitialSlideId, setPresentationInitialSlideId] = useState<string | undefined>();
 
   const renderedDeck = useMemo(() => {
     if (compileResult?.status === "valid" || compileResult?.status === "degraded") {
@@ -96,6 +99,12 @@ function IntegratedExample(): React.ReactElement {
   }, [compileResult]);
 
   const canPresent = compileResult?.status === "valid" && renderedDeck !== undefined;
+
+  useEffect(() => {
+    if (!canPresent) {
+      setPresentationOpen(false);
+    }
+  }, [canPresent]);
 
   return (
     <main className="integrated-shell">
@@ -131,18 +140,17 @@ function IntegratedExample(): React.ReactElement {
                   controls={{
                     showPresentationButton: true,
                     showPresentationControlsModeSelect: true,
+                    presentationControlsMode,
+                    onPresentationControlsModeChange: setPresentationControlsMode,
+                    presentationDisabled: !canPresent,
                     presentationUnavailableLabel: "Disponible uniquement sans erreur de compilation",
                   }}
-                  presentation={{
-                    canOpen: canPresent,
-                    controlsMode: presentationControlsMode,
-                    onControlsModeChange: setPresentationControlsMode,
-                    controls: {
-                      autoHideDelayMs: 1800,
-                    },
-                    hint: {
-                      text: "Fleches gauche/droite: precedent/suivant. Escape: quitter.",
-                    },
+                  onRequestPresentation={(event) => {
+                    if (!canPresent) {
+                      return;
+                    }
+                    setPresentationInitialSlideId(event.slideId);
+                    setPresentationOpen(true);
                   }}
                 />
               ) : (
@@ -177,6 +185,30 @@ function IntegratedExample(): React.ReactElement {
           </section>
         </div>
       </section>
+
+      {renderedDeck ? (
+        <DeckPresentationOverlay
+          deck={renderedDeck}
+          open={presentationOpen && canPresent}
+          initialSlideId={presentationInitialSlideId}
+          options={{
+            fullscreen: {
+              strategy: "browser-fullscreen",
+              closeOnEscape: true,
+            },
+            controls:
+              presentationControlsMode === "auto"
+                ? { visibility: "auto", autoHideDelayMs: 1800 }
+                : { visibility: presentationControlsMode },
+            hint: {
+              showWhenControlsHidden: true,
+              text: "Fleches gauche/droite: precedent/suivant. Escape: quitter.",
+              position: "bottom-right",
+            },
+          }}
+          onOpenChange={(event) => setPresentationOpen(event.open)}
+        />
+      ) : null}
     </main>
   );
 }

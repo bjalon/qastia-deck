@@ -149,6 +149,12 @@
   margin-bottom: 0.75rem;
 }
 
+.deck-show-toolbar[data-placement="bottom"] {
+  margin-bottom: 0;
+  margin-top: 0.75rem;
+  order: 2;
+}
+
 .deck-show-toolbar button,
 .deck-show-toolbar select,
 .deck-studio-root button,
@@ -261,6 +267,12 @@
   right: 1rem;
 }
 
+.deck-presentation-hint[data-position="bottom-center"] {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
 .deck-studio-root {
   background: #f8fafc;
   border: 1px solid #e5e7eb;
@@ -268,6 +280,18 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 720px;
+}
+
+.deck-studio-root[data-slide-rail="hidden"][data-inspector="visible"] {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.deck-studio-root[data-slide-rail="visible"][data-inspector="hidden"] {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.deck-studio-root[data-slide-rail="hidden"][data-inspector="hidden"] {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .deck-studio-rail,

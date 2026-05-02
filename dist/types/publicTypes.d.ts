@@ -310,6 +310,7 @@ export type DeckStudioSharedProps = {
     readonly locale?: string;
     readonly responsiveMode?: DeckStudioResponsiveMode;
     readonly layout?: DeckStudioLayoutOptions;
+    readonly options?: DeckStudioOptions;
     readonly storage?: false | DeckStorageConfig;
     readonly autosave?: false | DeckAutosaveConfig;
     readonly features?: DeckStudioFeatureFlags;
@@ -326,12 +327,58 @@ export type DeckStudioLayoutOptions = {
     readonly desktopBreakpointPx?: number;
     readonly slideRailWidthPx?: number;
     readonly inspectorWidthPx?: number;
+    readonly showSlideRail?: boolean;
     readonly showInspector?: boolean;
     readonly showActiveSlidePreview?: boolean;
     readonly showSourceModeToggle?: boolean;
     readonly showVersionHistory?: boolean;
     readonly showDiagnosticsPanel?: boolean;
     readonly density?: "compact" | "comfortable";
+};
+export type DeckStudioOptions = {
+    readonly panels?: DeckStudioPanelsOptions;
+    readonly editing?: {
+        readonly defaultMode?: "form" | "source";
+        readonly allowSourceMode?: boolean;
+        readonly allowLayoutChange?: boolean;
+    };
+    readonly layoutSelector?: {
+        readonly enabled?: boolean;
+    };
+};
+export type DeckStudioPanelsOptions = {
+    readonly slideRail?: false | SlideRailOptions;
+    readonly inspector?: false | InspectorOptions;
+    readonly diagnostics?: false | DiagnosticsPanelOptions;
+    readonly activeSlidePreview?: false | ActiveSlidePreviewOptions;
+    readonly versionHistory?: false | VersionHistoryPanelOptions;
+};
+export type SlideRailOptions = {
+    readonly visibleDefault?: boolean;
+    readonly userToggle?: boolean;
+    readonly placement?: "left" | "right";
+    readonly widthPx?: number;
+    readonly thumbnailMode?: "live" | "simplified";
+    readonly allowReorder?: boolean;
+    readonly allowAddDelete?: boolean;
+};
+export type InspectorOptions = {
+    readonly visibleDefault?: boolean;
+    readonly userToggle?: boolean;
+    readonly widthPx?: number;
+};
+export type DiagnosticsPanelOptions = {
+    readonly visibleDefault?: boolean;
+    readonly userToggle?: boolean;
+    readonly placement?: "bottom" | "right" | "inspector";
+};
+export type ActiveSlidePreviewOptions = {
+    readonly visibleDefault?: boolean;
+    readonly userToggle?: boolean;
+};
+export type VersionHistoryPanelOptions = {
+    readonly visibleDefault?: boolean;
+    readonly userToggle?: boolean;
 };
 export type DeckStudioFeatureFlags = {
     readonly allowAddSlide?: boolean;
@@ -378,38 +425,70 @@ export type DeckRuntimeError = {
 export type DeckShowProps = {
     readonly deck: CompiledDeck;
     readonly initialSlideId?: string;
-    readonly mode?: "viewer" | "presenter" | "embedded";
-    readonly controls?: DeckShowControlsOptions;
-    readonly presentation?: false | DeckPresentationOptions;
+    readonly defaultSelectedSlideId?: string;
+    readonly selectedSlideId?: string;
+    readonly mode?: "viewer" | "embedded";
+    readonly controls?: false | DeckShowControlsOptions;
     readonly onAction?: (event: DeckUserAction, state: DeckRuntimeState) => void;
     readonly onSlideChange?: (event: SlideChangeEvent) => void;
+    readonly onRequestPresentation?: (event: DeckPresentationRequestEvent) => void;
     readonly onDiagnosticClick?: (diagnostic: DeckDiagnostic) => void;
 };
 export type DeckShowControlsOptions = {
-    readonly visible?: boolean;
+    readonly placement?: "top" | "bottom";
+    readonly showPreviousNext?: boolean;
+    readonly showCounter?: boolean;
     readonly showPresentationButton?: boolean;
     readonly showPresentationControlsModeSelect?: boolean;
+    readonly presentationControlsMode?: DeckPresentationControlsMode;
+    readonly onPresentationControlsModeChange?: (mode: DeckPresentationControlsMode) => void;
     readonly presentationButtonLabel?: string;
+    readonly presentationDisabled?: boolean;
     readonly presentationUnavailableLabel?: string;
 };
 export type DeckPresentationControlsMode = "visible" | "hidden" | "auto";
 export type DeckPresentationOptions = {
-    readonly enabled?: boolean;
-    readonly canOpen?: boolean;
-    readonly controlsMode?: DeckPresentationControlsMode;
-    readonly onControlsModeChange?: (mode: DeckPresentationControlsMode) => void;
     readonly fullscreen?: {
-        readonly requestBrowserFullscreen?: boolean;
+        readonly strategy?: "overlay" | "browser-fullscreen";
         readonly closeOnEscape?: boolean;
     };
-    readonly controls?: {
-        readonly mode?: DeckPresentationControlsMode;
-        readonly autoHideDelayMs?: number;
-    };
+    readonly controls?: PresentationControlsOptions;
     readonly hint?: {
         readonly showWhenControlsHidden?: boolean;
         readonly text?: string;
+        readonly position?: "bottom-right" | "bottom-center";
     };
+};
+export type PresentationControlsOptions = {
+    readonly visibility: "visible";
+} | {
+    readonly visibility: "hidden";
+} | {
+    readonly visibility: "auto";
+    readonly autoHideDelayMs?: number;
+};
+export type DeckPresentationRequestEvent = {
+    readonly type: "presentation-requested";
+    readonly slideId?: string;
+    readonly activeSlideIndex: number;
+    readonly createdAtIso: string;
+};
+export type DeckPresentationOpenChangeEvent = {
+    readonly open: boolean;
+    readonly origin: ActionOrigin;
+    readonly slideId?: string;
+    readonly createdAtIso: string;
+};
+export type DeckPresentationOverlayProps = {
+    readonly deck: CompiledDeck;
+    readonly open?: boolean;
+    readonly defaultOpen?: boolean;
+    readonly initialSlideId?: string;
+    readonly selectedSlideId?: string;
+    readonly options?: DeckPresentationOptions;
+    readonly onOpenChange?: (event: DeckPresentationOpenChangeEvent) => void;
+    readonly onSlideChange?: (event: SlideChangeEvent) => void;
+    readonly onAction?: (event: DeckUserAction, state: DeckRuntimeState) => void;
 };
 export type DeckRuntimeState = {
     readonly activeSlideId: string;

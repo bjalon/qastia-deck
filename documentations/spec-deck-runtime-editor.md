@@ -149,6 +149,62 @@ Sur desktop, il doit afficher :
 
 Le mode source YAML reste disponible en debug ou pour les utilisateurs techniques.
 
+### 2.6. Découpage des responsabilités publiques
+
+La librairie doit rester utilisable par couches. `IntegratedDeckWorkspace` est une façade de commodité, pas le centre réel du système.
+
+Hiérarchie conceptuelle :
+
+```txt
+core + compiler
+   ↓
+SlideRenderer / DeckViewport
+   ↓
+DeckShow
+   ↓
+DeckStudio / DeckPresentationOverlay
+   ↓
+IntegratedDeckWorkspace
+```
+
+Règles :
+
+- `IntegratedDeckWorkspace` peut dépendre de tout ;
+- `DeckStudio` peut dépendre du compilateur, des layouts, des diagnostics et du viewer ;
+- `DeckShow` ne dépend pas de l’éditeur ;
+- `DeckShow` ne doit pas ouvrir directement `DeckPresentationOverlay` ;
+- `DeckPresentationOverlay` ne dépend pas de l’éditeur ;
+- `DeckPresentationOverlay` et `DeckShow` doivent réutiliser un niveau de rendu/navigation partagé (`DeckViewport`, et à terme un contrôleur de navigation commun) ;
+- `SlideRenderer` ne dépend ni du workspace, ni de l’éditeur, ni de la présentation ;
+- la persistance ne dépend pas de React ;
+- les layouts définissent leur rendu, leur validation et leurs champs d’édition ;
+- les renderers Mermaid/code/image restent dans des plugins ou registries dédiés.
+
+Conséquence API : `DeckShow` peut afficher un bouton de présentation, mais il ne fait qu’émettre `onRequestPresentation`. L’ouverture réelle de l’overlay appartient au workspace ou à l’application hôte.
+
+### 2.7. Composants contrôlés et non contrôlés
+
+Les composants importants doivent supporter un mode non contrôlé et un mode contrôlé :
+
+- slide active ;
+- présentation ouverte/fermée ;
+- panneau diagnostics visible/masqué ;
+- rail de slides visible/masqué ;
+- mode source actif/inactif ;
+- historique de versions visible/masqué.
+
+Pattern attendu :
+
+```ts
+type DeckSelectionProps = {
+  readonly selectedSlideId?: string;
+  readonly defaultSelectedSlideId?: string;
+  readonly onSlideChange?: (event: SlideChangeEvent) => void;
+};
+```
+
+Le composant peut gérer son état par défaut, mais l’application hôte doit pouvoir reprendre la main sans réécrire l’UI.
+
 ---
 
 ## 3. Stack technique recommandée
@@ -196,6 +252,7 @@ Le module exporte uniquement une API claire.
 
 ```ts
 export { DeckShow } from "./slideshow/DeckShow";
+export { DeckPresentationOverlay } from "./presentation/DeckPresentationOverlay";
 export { DeckStudio } from "./studio/DeckStudio";
 export { DebugDeckFallback } from "./debug/DebugDeckFallback";
 export { PrintDeck } from "./pdf/PrintDeck";
@@ -210,6 +267,9 @@ export type {
   CompiledSlide,
   CompileDeckResult,
   DeckDiagnostic,
+  DeckPresentationOptions,
+  DeckPresentationOverlayProps,
+  DeckPresentationRequestEvent,
   DeckStudioProps,
   DeckRuntime,
   DeckUserAction,
@@ -218,6 +278,17 @@ export type {
 ```
 
 Les sous-modules internes ne doivent pas être importés directement par l’application consommatrice.
+
+À terme, les entrypoints publics doivent permettre de ne charger que la couche utile :
+
+```ts
+import { DeckShow } from "@qastia/deck-runtime/viewer";
+import { DeckStudio } from "@qastia/deck-runtime/editor";
+import { DeckPresentationOverlay } from "@qastia/deck-runtime/presentation";
+import { IntegratedDeckWorkspace } from "@qastia/deck-runtime/workspace";
+```
+
+Une page de preview seule ne doit pas embarquer inutilement l’éditeur, l’historique ou des renderers spécialisés non utilisés.
 
 ---
 
@@ -842,6 +913,13 @@ export type DeckStudioSharedProps = {
 
 ### 9.5. Options de layout UI
 
+La version initiale peut exposer des booléens simples, mais l’API cible doit évoluer vers des panels nommés pour éviter les ambiguïtés entre :
+
+- `slideRail` : liste des slides dans l’éditeur ;
+- `activeSlidePreview` : preview de la slide sélectionnée dans l’éditeur ;
+- `deckPreviewPane` : viewer complet du deck dans un workspace intégré ;
+- `diagnosticsPanel` : affichage des diagnostics.
+
 ```ts
 export type DeckStudioLayoutOptions = {
   readonly desktopBreakpointPx?: number;
@@ -853,6 +931,41 @@ export type DeckStudioLayoutOptions = {
   readonly showVersionHistory?: boolean;
   readonly showDiagnosticsPanel?: boolean;
   readonly density?: "compact" | "comfortable";
+};
+```
+
+API cible pour les nouveaux développements :
+
+```ts
+export type DeckStudioOptions = {
+  readonly panels?: {
+    readonly slideRail?: false | SlideRailOptions;
+    readonly inspector?: false | InspectorOptions;
+    readonly diagnostics?: false | DiagnosticsPanelOptions;
+    readonly activeSlidePreview?: false | ActiveSlidePreviewOptions;
+    readonly versionHistory?: false | VersionHistoryPanelOptions;
+  };
+
+  readonly editing?: {
+    readonly defaultMode?: "form" | "source";
+    readonly allowSourceMode?: boolean;
+    readonly allowLayoutChange?: boolean;
+  };
+};
+
+export type SlideRailOptions = {
+  readonly visibleDefault?: boolean;
+  readonly userToggle?: boolean;
+  readonly placement?: "left" | "right";
+  readonly thumbnailMode?: "live" | "simplified";
+  readonly allowReorder?: boolean;
+  readonly allowAddDelete?: boolean;
+};
+
+export type DiagnosticsPanelOptions = {
+  readonly visibleDefault?: boolean;
+  readonly userToggle?: boolean;
+  readonly placement?: "bottom" | "right" | "inspector";
 };
 ```
 
@@ -937,6 +1050,70 @@ DeckStudio
   RawSourceEditor
   CrashRecoveryDialog
 ```
+
+### 9.9. Workspace intégré
+
+`IntegratedDeckWorkspace` est un assemblage haut niveau destiné aux intégrations rapides. Il centralise l’état UI partagé et le redistribue aux briques bas niveau.
+
+États centralisés :
+
+- `deckPreviewPaneVisible` ;
+- `diagnosticsVisible` ;
+- `presentationOpen` ;
+- `presentationControlsVisibility` ;
+- `selectedSlideId` ;
+- `sourceMode` ;
+- `versionHistoryVisible`.
+
+API cible :
+
+```ts
+export type IntegratedDeckWorkspaceProps = {
+  readonly source: DeckSource;
+  readonly runtime?: DeckRuntime;
+
+  readonly selectedSlideId?: string;
+  readonly defaultSelectedSlideId?: string;
+
+  readonly options?: IntegratedDeckWorkspaceOptions;
+  readonly persistence?: false | DeckPersistenceOptions;
+
+  readonly onSourceChange?: (event: DeckSourceChangeEvent) => void;
+  readonly onCompile?: (result: CompileDeckResult) => void;
+  readonly onSlideChange?: (event: SlideChangeEvent) => void;
+  readonly onAction?: (
+    event: DeckUserAction,
+    state: DeckRuntimeState,
+  ) => void;
+};
+
+export type IntegratedDeckWorkspaceOptions = {
+  readonly topBar?: false | {
+    readonly showPreviewToggle?: boolean;
+    readonly showDiagnosticsToggle?: boolean;
+    readonly showVersionHistoryButton?: boolean;
+    readonly showPresentationButton?: boolean;
+  };
+
+  readonly layout?: DeckWorkspaceLayoutOptions;
+  readonly presentation?: false | DeckPresentationOptions;
+
+  readonly diagnostics?: {
+    readonly openOnlyWhenErrors?: boolean;
+  };
+};
+
+export type DeckWorkspaceLayoutOptions = {
+  readonly slideRail?: false | SlideRailOptions;
+  readonly editorPane?: false | EditorPaneOptions;
+  readonly activeSlidePreview?: false | ActiveSlidePreviewOptions;
+  readonly deckPreviewPane?: false | DeckPreviewPaneOptions;
+  readonly diagnosticsPanel?: false | DiagnosticsPanelOptions;
+  readonly versionHistoryPanel?: false | VersionHistoryPanelOptions;
+};
+```
+
+Le workspace peut ouvrir `DeckPresentationOverlay` après un `onRequestPresentation` émis par `DeckShow`. `DeckShow` ne doit pas connaître l’existence du workspace.
 
 ---
 
@@ -1459,54 +1636,152 @@ export const defaultDeckRuntime = createDeckRuntime({
 
 ---
 
-## 18. Slideshow `DeckShow`
+## 18. Viewer, navigation et présentation
 
-### 18.1. Rôle
+### 18.1. `DeckShow`
 
-`DeckShow` affiche un deck compilé en mode lecture.
+`DeckShow` affiche un deck compilé en mode lecture ou preview. Il reste un viewer : il ne possède pas l’overlay plein écran.
 
 Il gère :
 
 - slide active ;
 - navigation clavier/souris/touch ;
-- transitions ;
-- plein écran ;
 - callbacks d’action ;
 - mode embedded ;
-- mode presenter futur.
+- toolbar optionnelle ;
+- demande de présentation via événement.
 
-### 18.2. Props
+Il ne gère pas :
+
+- ouverture réelle du fullscreen ;
+- persistance ;
+- diagnostics d’édition ;
+- état du workspace.
+
+Props cibles :
 
 ```ts
 export type DeckShowProps = {
   readonly deck: CompiledDeck;
+  readonly mode?: "viewer" | "embedded";
+
+  readonly selectedSlideId?: string;
+  readonly defaultSelectedSlideId?: string;
   readonly initialSlideId?: string;
-  readonly mode?: "viewer" | "presenter" | "embedded";
+
+  readonly controls?: false | DeckShowControlsOptions;
+
+  readonly onSlideChange?: (event: SlideChangeEvent) => void;
   readonly onAction?: (
     event: DeckUserAction,
     state: DeckRuntimeState,
   ) => void;
-  readonly onSlideChange?: (event: SlideChangeEvent) => void;
+  readonly onRequestPresentation?: (
+    event: DeckPresentationRequestEvent,
+  ) => void;
   readonly onDiagnosticClick?: (diagnostic: DeckDiagnostic) => void;
 };
+
+export type DeckShowControlsOptions = {
+  readonly placement?: "top" | "bottom";
+  readonly showPreviousNext?: boolean;
+  readonly showCounter?: boolean;
+  readonly showPresentationButton?: boolean;
+  readonly showPresentationControlsModeSelect?: boolean;
+  readonly presentationControlsMode?: DeckPresentationControlsMode;
+  readonly onPresentationControlsModeChange?: (
+    mode: DeckPresentationControlsMode,
+  ) => void;
+  readonly presentationButtonLabel?: string;
+  readonly presentationDisabled?: boolean;
+  readonly presentationUnavailableLabel?: string;
+};
+
+export type DeckPresentationRequestEvent = {
+  readonly type: "presentation-requested";
+  readonly slideId?: string;
+  readonly activeSlideIndex: number;
+  readonly createdAtIso: string;
+};
 ```
+
+Le bouton `Presentation`, quand il est affiché, déclenche uniquement `onRequestPresentation`.
+
+### 18.2. `DeckPresentationOverlay`
+
+`DeckPresentationOverlay` est la brique plein écran autonome. Elle peut être utilisée sans `DeckStudio` ni `IntegratedDeckWorkspace`.
+
+Elle doit réutiliser `DeckViewport` ou un contrôleur de navigation partagé pour éviter de dupliquer les règles de navigation avec `DeckShow`.
+
+Props cibles :
+
+```ts
+export type DeckPresentationOverlayProps = {
+  readonly deck: CompiledDeck;
+
+  readonly open?: boolean;
+  readonly defaultOpen?: boolean;
+
+  readonly initialSlideId?: string;
+  readonly selectedSlideId?: string;
+
+  readonly options?: DeckPresentationOptions;
+
+  readonly onOpenChange?: (
+    event: DeckPresentationOpenChangeEvent,
+  ) => void;
+  readonly onSlideChange?: (event: SlideChangeEvent) => void;
+  readonly onAction?: (
+    event: DeckUserAction,
+    state: DeckRuntimeState,
+  ) => void;
+};
+
+export type DeckPresentationOptions = {
+  readonly fullscreen?: {
+    readonly strategy?: "overlay" | "browser-fullscreen";
+    readonly closeOnEscape?: boolean;
+  };
+
+  readonly controls?: PresentationControlsOptions;
+
+  readonly hint?: {
+    readonly showWhenControlsHidden?: boolean;
+    readonly text?: string;
+    readonly position?: "bottom-right" | "bottom-center";
+  };
+};
+
+export type PresentationControlsOptions =
+  | { readonly visibility: "visible" }
+  | { readonly visibility: "hidden" }
+  | {
+      readonly visibility: "auto";
+      readonly autoHideDelayMs?: number;
+    };
+```
+
+`fullscreen.strategy = "browser-fullscreen"` demande le fullscreen navigateur. Si le navigateur refuse, l’overlay CSS reste rendu. `fullscreen.strategy = "overlay"` rend seulement l’overlay CSS.
+
+Quand `controls.visibility = "hidden"`, les boutons `Previous`, `Next` et `Quitter` ne sont pas affichés. Un hint discret peut rappeler les raccourcis clavier.
+
+Quand `controls.visibility = "auto"`, les boutons sont affichés au mouvement souris puis masqués après `autoHideDelayMs`.
 
 ### 18.3. Actions utilisateur
 
 ```ts
 export type DeckUserAction =
-  | { readonly type: "next"; readonly origin: ActionOrigin }
-  | { readonly type: "previous"; readonly origin: ActionOrigin }
-  | { readonly type: "go-to"; readonly slideId: string; readonly origin: ActionOrigin }
-  | { readonly type: "escape"; readonly origin: ActionOrigin }
-  | { readonly type: "toggle-fullscreen"; readonly origin: ActionOrigin }
-  | { readonly type: "export-pdf"; readonly origin: ActionOrigin };
+  | { readonly type: "next-slide"; readonly origin: ActionOrigin; readonly slideId?: string }
+  | { readonly type: "previous-slide"; readonly origin: ActionOrigin; readonly slideId?: string }
+  | { readonly type: "go-to-slide"; readonly origin: ActionOrigin; readonly slideId?: string }
+  | { readonly type: "toggle-fullscreen"; readonly origin: ActionOrigin; readonly slideId?: string }
+  | { readonly type: "pdf-export"; readonly origin: ActionOrigin; readonly slideId?: string };
 
 export type ActionOrigin =
   | "keyboard"
   | "mouse"
   | "touch"
-  | "api";
+  | "programmatic";
 ```
 
 ---
@@ -1515,7 +1790,7 @@ export type ActionOrigin =
 
 ### 19.1. Objectif
 
-`DeckStudio` doit pouvoir sauvegarder localement plusieurs versions du deck sans backend.
+La librairie doit pouvoir sauvegarder localement plusieurs versions du deck sans backend, mais la persistance ne doit pas être enfouie dans l’UI. `DeckStudio` et `IntegratedDeckWorkspace` consomment une interface de persistance.
 
 Cette sauvegarde sert à :
 
@@ -1525,7 +1800,33 @@ Cette sauvegarde sert à :
 - sécuriser les opérations destructrices ;
 - comparer plusieurs versions.
 
-### 19.2. Stockage par défaut
+### 19.2. Adapter de persistance
+
+La persistance passe par un adapter indépendant de React :
+
+```ts
+export interface DeckVersionStore {
+  saveSnapshot(request: SaveDeckSnapshotRequest): Promise<DeckVersionMeta>;
+  listVersions(deckId: string): Promise<readonly DeckVersionMeta[]>;
+  loadVersion(request: LoadDeckVersionRequest): Promise<DeckSource>;
+  deleteVersion(request: DeleteDeckVersionRequest): Promise<void>;
+  prune(request: PruneDeckVersionsRequest): Promise<void>;
+}
+```
+
+Implémentation par défaut :
+
+```ts
+createLocalStorageDeckVersionStore({
+  namespace: "deck-runtime",
+  maxVersionsPerDeck: 50,
+  maxBytesPerDeck: 2_000_000,
+});
+```
+
+Le même contrat doit permettre à terme IndexedDB ou un backend applicatif.
+
+### 19.3. Stockage par défaut
 
 Le stockage par défaut est `localStorage`.
 
@@ -1537,9 +1838,9 @@ Règles :
 - limiter le nombre de versions ;
 - compacter l’historique ;
 - gérer les erreurs de quota ;
-- prévoir un adapter alternatif pour IndexedDB ou backend.
+- exposer un adapter alternatif pour IndexedDB ou backend.
 
-### 19.3. Configuration
+### 19.4. Configuration
 
 ```ts
 export type DeckStorageConfig = {
@@ -2215,9 +2516,12 @@ src/
           UnsupportedRenderer.tsx
 
       slideshow/
+        index.ts
         DeckShow.tsx
         DeckViewport.tsx
+        useDeckNavigation.ts
         SlideRenderer.tsx
+        DeckNavigationToolbar.tsx
         LayoutRenderer.tsx
         SlotRenderer.tsx
         ContentRenderer.tsx
@@ -2230,7 +2534,14 @@ src/
           TransitionRenderer.tsx
           transitionClasses.css
 
+      presentation/
+        index.ts
+        DeckPresentationOverlay.tsx
+        PresentationControls.tsx
+        usePresentationFullscreen.ts
+
       studio/
+        index.ts
         DeckStudio.tsx
         DeckStudioProvider.tsx
         DeckStudioLayout.tsx
@@ -2270,6 +2581,14 @@ src/
         recovery/
           CrashRecoveryDialog.tsx
           buildRecoveryCandidates.ts
+
+      workspace/
+        index.ts
+        IntegratedDeckWorkspace.tsx
+        WorkspaceTopBar.tsx
+        WorkspaceBody.tsx
+        DeckPreviewPane.tsx
+        useDeckWorkspaceState.ts
 
       persistence/
         DeckPersistenceAdapter.ts
@@ -2333,7 +2652,9 @@ runtime     -> domain + registries
 layouts     -> React + domain
 renderers   -> React + domain
 slideshow   -> React + layouts + renderers + domain
+presentation -> React + slideshow + domain
 studio      -> React + compiler + persistence + slideshow
+workspace   -> React + compiler + studio + slideshow + presentation + persistence
 persistence -> domain + browser storage adapter
 pdf         -> slideshow + domain
 themes      -> domain
@@ -2345,6 +2666,9 @@ Interdictions :
 - `compiler` ne doit jamais importer `DeckStudio` ;
 - `layouts` ne doivent pas importer `studio` ;
 - `renderers` ne doivent pas importer `studio` ;
+- `slideshow` ne doit pas importer `presentation` ;
+- `presentation` ne doit pas importer `studio` ;
+- `persistence` ne doit pas importer React ;
 - l’application consommatrice ne doit pas importer les fichiers internes.
 
 ---

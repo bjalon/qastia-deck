@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import {
+  DeckPresentationOverlay,
   DeckShow,
   DeckStudio,
   compileDeck,
@@ -87,8 +88,10 @@ describe("deck-runtime public rendering", () => {
     });
   });
 
-  it("opens DeckShow presentation mode with configurable hidden controls", async () => {
+  it("requests presentation from DeckShow without owning the overlay", async () => {
     const deck = await compileValidDeck();
+    const onRequestPresentation = jest.fn();
+    const onPresentationControlsModeChange = jest.fn();
 
     render(
       React.createElement(DeckShow, {
@@ -97,14 +100,10 @@ describe("deck-runtime public rendering", () => {
         controls: {
           showPresentationButton: true,
           showPresentationControlsModeSelect: true,
+          presentationControlsMode: "hidden",
+          onPresentationControlsModeChange,
         },
-        presentation: {
-          canOpen: true,
-          controlsMode: "hidden",
-          fullscreen: {
-            requestBrowserFullscreen: false,
-          },
-        },
+        onRequestPresentation,
       }),
     );
 
@@ -112,13 +111,44 @@ describe("deck-runtime public rendering", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Presentation" }));
 
+    expect(onRequestPresentation).toHaveBeenCalledWith({
+      type: "presentation-requested",
+      slideId: "cover",
+      activeSlideIndex: 0,
+      createdAtIso: expect.any(String),
+    });
+    expect(screen.queryByRole("dialog", { name: "Presentation plein ecran" })).not.toBeInTheDocument();
+  });
+
+  it("renders a standalone presentation overlay with configurable hidden controls", async () => {
+    const deck = await compileValidDeck();
+
+    function PresentationHarness() {
+      const [open, setOpen] = React.useState(true);
+
+      return React.createElement(DeckPresentationOverlay, {
+        deck,
+        open,
+        options: {
+          fullscreen: {
+            strategy: "overlay",
+          },
+          controls: {
+            visibility: "hidden",
+          },
+        },
+        onOpenChange: (event) => setOpen(event.open),
+      });
+    }
+
+    render(React.createElement(PresentationHarness));
+
     expect(screen.getByRole("dialog", { name: "Presentation plein ecran" })).toBeInTheDocument();
     expect(screen.getByText(/Fleches gauche\/droite/)).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
 
-    expect(screen.getByText("2 / 2")).toBeInTheDocument();
-    expect(screen.getAllByText("Details")).toHaveLength(2);
+    expect(screen.getByText("Details")).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
 
@@ -144,6 +174,36 @@ describe("deck-runtime public rendering", () => {
     expect(screen.getByRole("button", { name: /2 details title-body/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("# Stable title\n");
     expect(screen.getByLabelText("Subtitle")).toHaveValue("Runtime preview\n");
+  });
+
+  it("supports DeckStudio panel options without legacy show flags", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "panel-options-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          panels: {
+            slideRail: false,
+            inspector: false,
+            diagnostics: false,
+            activeSlidePreview: false,
+            versionHistory: false,
+          },
+          editing: {
+            allowSourceMode: false,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("# Stable title\n");
+    });
+
+    expect(screen.queryByRole("navigation", { name: "Slides" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "YAML" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Diagnostics")).not.toBeInTheDocument();
   });
 
   it("does not recompile DeckStudio only because integration props are recreated", async () => {

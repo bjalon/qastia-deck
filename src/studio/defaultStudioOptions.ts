@@ -5,6 +5,7 @@ export const defaultDeckStudioLayoutOptions: Required<DeckStudioLayoutOptions> =
   desktopBreakpointPx: 1024,
   slideRailWidthPx: 260,
   inspectorWidthPx: 340,
+  showSlideRail: true,
   showInspector: true,
   showActiveSlidePreview: true,
   showSourceModeToggle: true,

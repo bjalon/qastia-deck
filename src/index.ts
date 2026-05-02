@@ -2,6 +2,7 @@ import "./styles/deck-runtime.css";
 
 export { DebugDeckFallback } from "./debug/DebugDeckFallback";
 export { compileDeck } from "./compiler/compileDeck";
+export { DeckPresentationOverlay } from "./presentation/DeckPresentationOverlay";
 export { PrintDeck } from "./pdf/PrintDeck";
 export { createDeckRuntime } from "./runtime/createDeckRuntime";
 export { defaultDeckRuntime } from "./runtime/defaultDeckRuntime";
@@ -32,10 +33,21 @@ export type {
   DeckPersistenceAdapter,
   DeckPersistenceResult,
   DeckPresentationControlsMode,
+  DeckPresentationOpenChangeEvent,
   DeckPresentationOptions,
+  DeckPresentationOverlayProps,
+  DeckPresentationRequestEvent,
   DeckRuntime,
   DeckShowControlsOptions,
   DeckShowProps,
+  DeckStudioOptions,
+  DeckStudioPanelsOptions,
+  PresentationControlsOptions,
+  ActiveSlidePreviewOptions,
+  DiagnosticsPanelOptions,
+  InspectorOptions,
+  SlideRailOptions,
+  VersionHistoryPanelOptions,
   DeckSource,
   DeckSourceChangeEvent,
   DeckSourceChangeReason,

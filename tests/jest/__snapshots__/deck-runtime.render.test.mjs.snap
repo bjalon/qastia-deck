@@ -8,6 +8,7 @@ exports[`deck-runtime public rendering matches the stable DeckShow DOM snapshot 
   <div
     aria-label="Deck navigation"
     class="deck-show-toolbar"
+    data-placement="top"
   >
     <button
       disabled=""
