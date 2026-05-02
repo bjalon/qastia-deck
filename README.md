@@ -1,6 +1,6 @@
 # qastia-deck
 
-Package local `deck-runtime` pour compiler, afficher, editer et imprimer des decks YAML/Markdown dans une application React + Vite.
+Package local `@qastia/deck-runtime` pour compiler, afficher, editer et imprimer des decks YAML/Markdown dans une application React + Vite.
 
 ## Build
 
@@ -16,7 +16,7 @@ Le projet consommateur reference la librairie en dependance locale :
 ```json
 {
   "dependencies": {
-    "deck-runtime": "file:../qastia-deck"
+    "@qastia/deck-runtime": "file:../qastia-deck"
   }
 }
 ```
@@ -24,8 +24,8 @@ Le projet consommateur reference la librairie en dependance locale :
 Exemple minimal :
 
 ```tsx
-import { DeckStudio, type DeckSource } from "deck-runtime";
-import "deck-runtime/styles.css";
+import { DeckStudio, type DeckSource } from "@qastia/deck-runtime";
+import "@qastia/deck-runtime/styles.css";
 
 const source: DeckSource = {
   content: `

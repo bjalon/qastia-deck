@@ -1,9 +1,16 @@
 {
-  "name": "deck-runtime",
+  "name": "@qastia/deck-runtime",
   "version": "0.1.0",
   "private": false,
   "type": "module",
   "description": "Runtime React pour compiler, afficher et editer des decks YAML/Markdown.",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/bjalon/qastia-deck.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "./dist/deck-runtime.js",
   "module": "./dist/deck-runtime.js",
   "types": "./dist/types/index.d.ts",
@@ -39,9 +46,9 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "@types/node": "^22.15.3",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
-    "@types/node": "^22.15.3",
     "@vitejs/plugin-react-swc": "^3.8.0",
     "typescript": "^5.7.2",
     "vite": "^6.2.0",
