@@ -327,11 +327,18 @@ function IntegratedExample(): React.ReactElement {
               value={source}
               onChange={(nextSource) => setSource(nextSource)}
               runtime={defaultDeckRuntime}
-              storage={false}
+              storage={{
+                namespace: "qastia-deck-example",
+                recoverOnMount: true,
+              }}
+              autosave={{
+                draftDebounceMs: 600,
+                versionIntervalMs: 60_000,
+              }}
               layout={{
                 showInspector: showDiagnostics,
                 showDiagnosticsPanel: showDiagnostics,
-                showVersionHistory: false,
+                showVersionHistory: true,
                 showSourceModeToggle: true,
                 showActiveSlidePreview: false,
                 slideRailWidthPx: 220,
@@ -345,8 +352,8 @@ function IntegratedExample(): React.ReactElement {
               }}
               features={{
                 allowPdfExport: false,
-                allowVersionRestore: false,
-                allowVersionCompare: false,
+                allowVersionRestore: true,
+                allowVersionCompare: true,
               }}
               onCompile={setCompileResult}
             />

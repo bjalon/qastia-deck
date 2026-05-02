@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import React from "react";
 import {
   DeckPresentationOverlay,
@@ -357,6 +357,215 @@ describe("deck-runtime public rendering", () => {
         reason: "metadata-edit",
       }),
     );
+  });
+
+  it("creates, renames, compares, and deletes manual versions", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "version-history-deck",
+        initialValue: source,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Versions")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Nom de version"), {
+      target: { value: "Baseline" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Créer version" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Baseline")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Renommer" }));
+    fireEvent.change(screen.getByLabelText("Renommer version"), {
+      target: { value: "Renamed baseline" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "OK" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Renamed baseline")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Comparer actuel" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Version vs courant" })).toBeInTheDocument();
+    });
+    expect(screen.getAllByDisplayValue(/Stable deck/)).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Renamed baseline")).not.toBeInTheDocument();
+    });
+  });
+
+  it("restores a saved version from the history panel", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "version-restore-deck",
+        initialValue: source,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    fireEvent.change(screen.getByLabelText("Nom de version"), {
+      target: { value: "Before edit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Créer version" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Before edit")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Changed title" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Changed title");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Restaurer" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+  });
+
+  it("offers crash recovery instead of restoring a draft silently", async () => {
+    window.localStorage.setItem(
+      "deck-runtime:v1:recovery-deck:draft",
+      JSON.stringify({
+        deckId: "recovery-deck",
+        namespace: "deck-runtime",
+        schemaVersion: 1,
+        updatedAtIso: "2026-05-02T20:00:00.000Z",
+        sessionId: "session",
+        source: {
+          content: source.content.replace("Stable title", "Recovered title"),
+        },
+        sourceHash: "draft-hash",
+        selectedSlideId: "cover",
+        compilerStatus: "valid",
+      }),
+    );
+
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "recovery-deck",
+        initialValue: source,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Une version locale plus récente existe" })).toBeInTheDocument();
+    });
+
+    expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+
+    fireEvent.click(screen.getByRole("button", { name: "Restaurer cette version" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Recovered title");
+    });
+  });
+
+  it("compares, previews, copies, and deletes a recovery draft", async () => {
+    window.localStorage.setItem(
+      "deck-runtime:v1:recovery-actions-deck:draft",
+      JSON.stringify({
+        deckId: "recovery-actions-deck",
+        namespace: "deck-runtime",
+        schemaVersion: 1,
+        updatedAtIso: "2026-05-02T20:00:00.000Z",
+        sessionId: "session",
+        source: {
+          content: source.content.replace("Stable title", "Draft actions title"),
+        },
+        sourceHash: "draft-actions-hash",
+        selectedSlideId: "cover",
+        compilerStatus: "valid",
+      }),
+    );
+
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "recovery-actions-deck",
+        initialValue: source,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Une version locale plus récente existe" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Comparer avec la version actuelle" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Draft vs courant" })).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue(/Draft actions title/)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Fermer" })[0]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir en lecture seule" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Draft local" })).toBeInTheDocument();
+    });
+    expect(screen.getByDisplayValue(/Draft actions title/)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "Fermer" })[0]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Créer une copie" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Copie du draft de recovery")).toBeInTheDocument();
+    });
+
+    cleanup();
+
+    window.localStorage.setItem(
+      "deck-runtime:v1:recovery-delete-deck:draft",
+      JSON.stringify({
+        deckId: "recovery-delete-deck",
+        namespace: "deck-runtime",
+        schemaVersion: 1,
+        updatedAtIso: "2026-05-02T20:00:00.000Z",
+        sessionId: "session",
+        source: {
+          content: source.content.replace("Stable title", "Draft deleted title"),
+        },
+        sourceHash: "draft-delete-hash",
+        selectedSlideId: "cover",
+        compilerStatus: "valid",
+      }),
+    );
+
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "recovery-delete-deck",
+        initialValue: source,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "Une version locale plus récente existe" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer le draft" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Une version locale plus récente existe" })).not.toBeInTheDocument();
+    });
+    expect(window.localStorage.getItem("deck-runtime:v1:recovery-delete-deck:draft")).toBeNull();
   });
 
   it("inserts a new slide after the selected slide", async () => {

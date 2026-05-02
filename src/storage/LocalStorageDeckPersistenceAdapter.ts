@@ -145,7 +145,7 @@ function cleanupVersions(
   }
 
   const versions = [...index.versions];
-  const autosaves = versions.filter((version) => version.reason === "autosave");
+  const originalVersions = [...versions];
 
   while (versions.length > limits.maxVersionsPerDeck) {
     const removableAutosave = findLastIndex(versions, (version) => version.reason === "autosave");
@@ -168,7 +168,7 @@ function cleanupVersions(
     totalBytes -= removed?.sizeBytes ?? 0;
   }
 
-  for (const removed of autosaves.filter((version) => !versions.some((kept) => kept.id === version.id))) {
+  for (const removed of originalVersions.filter((version) => !versions.some((kept) => kept.id === version.id))) {
     storage()?.removeItem(versionKey(index.namespace, index.deckId, removed.id));
   }
 

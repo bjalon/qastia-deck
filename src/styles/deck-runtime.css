@@ -917,7 +917,8 @@
   cursor: not-allowed;
 }
 
-.deck-global-defaults-backdrop {
+.deck-global-defaults-backdrop,
+.deck-modal-backdrop {
   align-items: center;
   background: rgba(15, 23, 42, 0.36);
   display: flex;
@@ -928,7 +929,8 @@
   z-index: 40;
 }
 
-.deck-global-defaults-dialog {
+.deck-global-defaults-dialog,
+.deck-modal-dialog {
   background: #ffffff;
   border: 1px solid #d0d5dd;
   border-radius: 10px;
@@ -940,7 +942,18 @@
   width: 100%;
 }
 
-.deck-global-defaults-dialog header {
+.deck-modal-dialog {
+  max-height: min(720px, calc(100vh - 3rem));
+  overflow: auto;
+}
+
+.deck-version-compare-dialog,
+.deck-version-source-dialog {
+  max-width: min(70rem, 100%);
+}
+
+.deck-global-defaults-dialog header,
+.deck-modal-dialog header {
   align-items: start;
   display: flex;
   gap: 1rem;
@@ -948,11 +961,14 @@
 }
 
 .deck-global-defaults-dialog h3,
-.deck-global-defaults-dialog p {
+.deck-global-defaults-dialog p,
+.deck-modal-dialog h3,
+.deck-modal-dialog p {
   margin: 0;
 }
 
-.deck-global-defaults-dialog p {
+.deck-global-defaults-dialog p,
+.deck-modal-dialog p {
   color: #667085;
   font-size: 0.76rem;
   font-weight: 800;
@@ -963,6 +979,110 @@
 .deck-global-defaults-body {
   display: grid;
   gap: 1rem;
+}
+
+.deck-recovery-summary,
+.deck-version-compare-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-recovery-summary article {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem;
+}
+
+.deck-recovery-summary span,
+.deck-recovery-versions span {
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.deck-modal-actions,
+.deck-version-actions,
+.deck-version-create,
+.deck-version-rename {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.deck-version-create input,
+.deck-version-rename input,
+.deck-version-compare-grid textarea,
+.deck-version-source-field textarea {
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #101828;
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+}
+
+.deck-version-create input,
+.deck-version-rename input {
+  min-width: 0;
+  flex: 1;
+}
+
+.deck-version-compare-grid label,
+.deck-version-source-field {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.deck-version-compare-grid label span,
+.deck-version-source-field span {
+  color: #344054;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.deck-version-compare-grid textarea,
+.deck-version-source-field textarea {
+  font-family: var(--deck-font-mono, ui-monospace, monospace);
+  min-height: 28rem;
+  resize: vertical;
+  white-space: pre;
+}
+
+.deck-version-history-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.deck-version-history-panel header {
+  align-items: start;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.deck-version-history-panel h3 {
+  margin: 0;
+}
+
+.deck-version-filter {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.deck-version-filter span,
+.deck-version-compare-hint {
+  color: #667085;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.deck-version-compare-hint {
+  margin: 0;
 }
 
 .deck-source-editor {

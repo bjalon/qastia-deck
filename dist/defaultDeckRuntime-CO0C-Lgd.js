@@ -18,10 +18,10 @@ class O {
     return h(C(e.namespace, e.deckId));
   }
   async saveCurrent(e) {
-    return f(C(e.namespace, e.deckId), e);
+    return u(C(e.namespace, e.deckId), e);
   }
   async saveDraft(e) {
-    return f(y(e.namespace, e.deckId), e);
+    return u(y(e.namespace, e.deckId), e);
   }
   async loadDraft(e) {
     return h(y(e.namespace, e.deckId));
@@ -48,7 +48,7 @@ class O {
       selectedSlideId: e.selectedSlideId,
       compilerStatus: e.compilerStatus,
       diagnosticsSummary: e.diagnosticsSummary
-    }, r = JSON.stringify(o), i = await f(p(e.namespace, e.deckId, e.id), o);
+    }, r = JSON.stringify(o), i = await u(p(e.namespace, e.deckId, e.id), o);
     if (i.status !== "success")
       return i;
     const s = await b(e.namespace, e.deckId), a = {
@@ -70,10 +70,10 @@ class O {
           compilerStatus: e.compilerStatus,
           sizeBytes: r.length
         },
-        ...s.versions.filter((u) => u.id !== e.id)
+        ...s.versions.filter((f) => f.id !== e.id)
       ]
     }, d = P(a, e.limits);
-    return f(N(e.namespace, e.deckId), d);
+    return u(N(e.namespace, e.deckId), d);
   }
   async listVersions(e) {
     return (await b(e.namespace, e.deckId)).versions;
@@ -94,7 +94,7 @@ class O {
         updatedAtIso: (/* @__PURE__ */ new Date()).toISOString(),
         versions: r.versions.filter((s) => s.id !== e.versionId)
       };
-      return f(N(e.namespace, e.deckId), i);
+      return u(N(e.namespace, e.deckId), i);
     } catch (o) {
       return S(o);
     }
@@ -104,7 +104,7 @@ function P(t, e) {
   var s;
   if (!e)
     return t;
-  const o = [...t.versions], r = o.filter((a) => a.reason === "autosave");
+  const o = [...t.versions], r = [...o];
   for (; o.length > e.maxVersionsPerDeck; ) {
     const a = w(o, (d) => d.reason === "autosave");
     o.splice(a >= 0 ? a : o.length - 1, 1);
@@ -117,10 +117,10 @@ function P(t, e) {
   }
   let i = o.reduce((a, d) => a + d.sizeBytes, 0);
   for (; i > e.maxBytesPerDeck && o.length > 0; ) {
-    const a = w(o, (T) => T.reason === "autosave"), d = a >= 0 ? a : o.length - 1, [u] = o.splice(d, 1);
-    i -= (u == null ? void 0 : u.sizeBytes) ?? 0;
+    const a = w(o, (T) => T.reason === "autosave"), d = a >= 0 ? a : o.length - 1, [f] = o.splice(d, 1);
+    i -= (f == null ? void 0 : f.sizeBytes) ?? 0;
   }
-  for (const a of r.filter((d) => !o.some((u) => u.id === d.id)))
+  for (const a of r.filter((d) => !o.some((f) => f.id === d.id)))
     (s = g()) == null || s.removeItem(p(t.namespace, t.deckId, a.id));
   return {
     ...t,
@@ -147,12 +147,12 @@ function h(t) {
     return null;
   }
 }
-function f(t, e) {
+function u(t, e) {
   try {
     const o = g();
     return o ? (o.setItem(t, JSON.stringify(e)), { status: "success" }) : I();
   } catch (o) {
-    return $(o) ? K(o) : S(o);
+    return V(o) ? K(o) : S(o);
   }
 }
 function I() {
@@ -179,7 +179,7 @@ function S(t) {
     diagnostics: [A(t)]
   };
 }
-function $(t) {
+function V(t) {
   return t instanceof DOMException && (t.name === "QuotaExceededError" || t.name === "NS_ERROR_DOM_QUOTA_REACHED");
 }
 function A(t) {
@@ -199,10 +199,10 @@ function w(t, e) {
       return o;
   return -1;
 }
-const F = /^(javascript|data|vbscript):/i, V = {
+const $ = /^(javascript|data|vbscript):/i, F = {
   async resolveImage(t) {
     const e = t.assetId ? t.assets.get(t.assetId) : void 0, o = (e == null ? void 0 : e.src) ?? t.src, r = (e == null ? void 0 : e.alt) ?? "";
-    if (!o || F.test(o.trim()))
+    if (!o || $.test(o.trim()))
       throw new Error("Image source is missing or unsafe.");
     return {
       src: o,
@@ -681,7 +681,7 @@ function te(t = {}) {
     renderers: k(o, (a) => a.kind, s, "renderer"),
     themes: k(r, (a) => a.id, s, "theme"),
     transitions: k(i, (a) => a.name, s, "transition"),
-    assets: V,
+    assets: F,
     storage: t.storage ?? new O(),
     pdf: t.pdf ?? D
   };

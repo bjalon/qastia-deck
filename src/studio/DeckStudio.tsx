@@ -7,6 +7,8 @@ import { DebugDeckFallback, DiagnosticsList } from "../debug/DebugDeckFallback";
 import type {
   CompileDeckResult,
   CompiledSlide,
+  DeckDraftSnapshot,
+  DeckPersistedState,
   DeckSource,
   DeckSourceChangeEvent,
   DeckSourceChangeReason,
@@ -37,6 +39,30 @@ import {
 } from "./editableSource";
 import { SlideFormEditor } from "./form/SlideFormEditor";
 import { GlobalDefaultsDialog } from "./global/GlobalDefaultsDialog";
+import { CrashRecoveryDialog } from "./recovery/CrashRecoveryDialog";
+import { VersionCompareDialog } from "./versions/VersionCompareDialog";
+import { VersionHistoryPanel } from "./versions/VersionHistoryPanel";
+import { VersionSourceDialog } from "./versions/VersionSourceDialog";
+
+type RecoveryPrompt = {
+  readonly draft: DeckDraftSnapshot;
+  readonly current: DeckPersistedState | null;
+  readonly versions: readonly DeckVersionSummary[];
+};
+
+type VersionCompareState = {
+  readonly title: string;
+  readonly leftLabel: string;
+  readonly leftSource: string;
+  readonly rightLabel: string;
+  readonly rightSource: string;
+};
+
+type VersionSourceState = {
+  readonly title: string;
+  readonly label: string;
+  readonly source: string;
+};
 
 export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const {
@@ -71,6 +97,10 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     studioOptions?.editing?.defaultMode ?? "form",
   );
   const [globalDefaultsOpen, setGlobalDefaultsOpen] = useState(false);
+  const [versionHistoryForcedOpen, setVersionHistoryForcedOpen] = useState(false);
+  const [recoveryPrompt, setRecoveryPrompt] = useState<RecoveryPrompt | null>(null);
+  const [versionCompare, setVersionCompare] = useState<VersionCompareState | null>(null);
+  const [versionSource, setVersionSource] = useState<VersionSourceState | null>(null);
   const [deckTitleEditing, setDeckTitleEditing] = useState(false);
   const [deckTitleDraft, setDeckTitleDraft] = useState("");
   const [slideDragState, setSlideDragState] = useState<{
@@ -83,6 +113,8 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
   const focusEditorAfterSlideSelectRef = useRef(false);
+  const recoveryCheckedRef = useRef(false);
+  const lastAutosaveVersionHashRef = useRef<string | null>(null);
 
   onCompileRef.current = onCompile;
   onErrorRef.current = onError;
@@ -256,22 +288,38 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   }, [compiledDeck, selectedSlideId]);
 
   useEffect(() => {
-    if (!storageConfig?.recoverOnMount) {
+    if (!storageConfig?.recoverOnMount || recoveryCheckedRef.current) {
       return;
     }
+    recoveryCheckedRef.current = true;
 
-    storageConfig.adapter
-      .loadDraft({ deckId, namespace: storageConfig.namespace })
-      .then((draft) => {
-        if (!draft || draft.sourceHash === hashSource(source.content)) {
+    Promise.all([
+      storageConfig.adapter.loadCurrent({ deckId, namespace: storageConfig.namespace }),
+      storageConfig.adapter.loadDraft({ deckId, namespace: storageConfig.namespace }),
+      storageConfig.adapter.listVersions({ deckId, namespace: storageConfig.namespace }),
+    ])
+      .then(([current, draft, storedVersions]) => {
+        if (!draft) {
           return;
         }
-        setSelectedSlideId(draft.selectedSlideId);
-        publishSource(draft.source, "crash-recovery", draft.selectedSlideId);
+
+        const sourceHash = hashSource(source.content);
+        const isDifferentFromSource = draft.sourceHash !== sourceHash;
+        const isDifferentFromCurrent = !current || draft.sourceHash !== current.sourceHash;
+        const isNewerThanCurrent = !current || draft.updatedAtIso > current.updatedAtIso;
+
+        if (!isDifferentFromSource || !isDifferentFromCurrent || !isNewerThanCurrent) {
+          return;
+        }
+        setRecoveryPrompt({
+          draft,
+          current,
+          versions: storedVersions,
+        });
       })
       .catch((error: unknown) => {
         onError?.({
-          message: error instanceof Error ? error.message : "Unable to recover deck draft.",
+          message: error instanceof Error ? error.message : "Unable to inspect deck recovery state.",
           cause: error,
         });
       });
@@ -354,6 +402,71 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     [compileResult, deckId, onError, refreshVersions, selectedSlideId, source, storageConfig],
   );
 
+  const createVersionFromSource = useCallback(
+    async (
+      nextSource: DeckSource,
+      reason: DeckVersionReason,
+      label?: string,
+      nextSelectedSlideId?: string,
+    ): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+
+      const nextCompileResult = await compileDeck(nextSource, {
+        runtime,
+        mode: "editor",
+        locale,
+      });
+      const result = await storageConfig.adapter.createVersion({
+        id: createVersionId(),
+        deckId,
+        namespace: storageConfig.namespace,
+        schemaVersion: 1,
+        createdAtIso: new Date().toISOString(),
+        label,
+        reason,
+        source: nextSource,
+        sourceHash: hashSource(nextSource.content),
+        selectedSlideId: nextSelectedSlideId,
+        compilerStatus: nextCompileResult.status,
+        diagnosticsSummary: summarizeDiagnostics(nextCompileResult.diagnostics),
+        limits: {
+          maxVersionsPerDeck: storageConfig.maxVersionsPerDeck,
+          maxAutosaveVersionsPerDeck: storageConfig.maxAutosaveVersionsPerDeck,
+          maxBytesPerDeck: storageConfig.maxBytesPerDeck,
+        },
+      });
+
+      if (result.status !== "success") {
+        onError?.({ message: result.diagnostics[0]?.message ?? "Unable to save deck version." });
+      }
+      refreshVersions();
+    },
+    [deckId, locale, onError, refreshVersions, runtime, storageConfig],
+  );
+
+  useEffect(() => {
+    if (!storageConfig || !autosaveConfig || !storageConfig.saveDraftOnChange) {
+      return;
+    }
+
+    if (autosaveConfig.createVersionOnValidDeckOnly && compileResult?.status === "invalid") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const sourceHash = hashSource(source.content);
+      if (lastAutosaveVersionHashRef.current === sourceHash) {
+        return;
+      }
+      lastAutosaveVersionHashRef.current = sourceHash;
+      void createVersion("autosave", "Autosave");
+    }, autosaveConfig.versionIntervalMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [autosaveConfig, compileResult?.status, createVersion, source.content, storageConfig]);
+
   const handleManualSave = useCallback((): void => {
     if (!storageConfig) {
       return;
@@ -380,6 +493,27 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     });
   }, [createVersion, deckId, onSave, selectedSlideId, source, storageConfig]);
 
+  const saveCurrentState = useCallback(
+    async (nextSource: DeckSource, nextSelectedSlideId?: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const result = await storageConfig.adapter.saveCurrent({
+        deckId,
+        namespace: storageConfig.namespace,
+        schemaVersion: 1,
+        updatedAtIso: new Date().toISOString(),
+        source: nextSource,
+        sourceHash: hashSource(nextSource.content),
+        selectedSlideId: nextSelectedSlideId,
+      });
+      if (result.status !== "success") {
+        onError?.({ message: result.diagnostics[0]?.message ?? "Unable to save current deck." });
+      }
+    },
+    [deckId, onError, storageConfig],
+  );
+
   const restoreVersion = useCallback(
     async (versionId: string): Promise<void> => {
       if (!storageConfig) {
@@ -402,14 +536,235 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
 
       setSelectedSlideId(version.selectedSlideId);
       publishSource(version.source, "version-restore", version.selectedSlideId);
+      await saveCurrentState(version.source, version.selectedSlideId);
+      await storageConfig.adapter.clearDraft({ deckId, namespace: storageConfig.namespace });
       onRestoreVersion?.({
         deckId,
         versionId,
         createdAtIso: new Date().toISOString(),
       });
     },
-    [createVersion, deckId, onRestoreVersion, publishSource, storageConfig],
+    [createVersion, deckId, onRestoreVersion, publishSource, saveCurrentState, storageConfig],
   );
+
+  const deleteVersionById = useCallback(
+    async (versionId: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const result = await storageConfig.adapter.deleteVersion({
+        deckId,
+        namespace: storageConfig.namespace,
+        versionId,
+      });
+      if (result.status !== "success") {
+        onError?.({ message: result.diagnostics[0]?.message ?? "Unable to delete deck version." });
+      }
+      refreshVersions();
+    },
+    [deckId, onError, refreshVersions, storageConfig],
+  );
+
+  const renameVersion = useCallback(
+    async (versionId: string, label: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const version = await storageConfig.adapter.loadVersion({
+        deckId,
+        namespace: storageConfig.namespace,
+        versionId,
+      });
+      if (!version) {
+        return;
+      }
+      const result = await storageConfig.adapter.createVersion({
+        ...version,
+        label,
+        limits: {
+          maxVersionsPerDeck: storageConfig.maxVersionsPerDeck,
+          maxAutosaveVersionsPerDeck: storageConfig.maxAutosaveVersionsPerDeck,
+          maxBytesPerDeck: storageConfig.maxBytesPerDeck,
+        },
+      });
+      if (result.status !== "success") {
+        onError?.({ message: result.diagnostics[0]?.message ?? "Unable to rename deck version." });
+      }
+      refreshVersions();
+    },
+    [deckId, onError, refreshVersions, storageConfig],
+  );
+
+  const compareWithCurrent = useCallback(
+    async (versionId: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const version = await storageConfig.adapter.loadVersion({
+        deckId,
+        namespace: storageConfig.namespace,
+        versionId,
+      });
+      if (!version) {
+        return;
+      }
+      setVersionCompare({
+        title: "Version vs courant",
+        leftLabel: version.label ?? version.reason,
+        leftSource: version.source.content,
+        rightLabel: "Courant",
+        rightSource: source.content,
+      });
+    },
+    [deckId, source.content, storageConfig],
+  );
+
+  const previewVersion = useCallback(
+    async (versionId: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const version = await storageConfig.adapter.loadVersion({
+        deckId,
+        namespace: storageConfig.namespace,
+        versionId,
+      });
+      if (!version) {
+        return;
+      }
+      setVersionSource({
+        title: version.label ?? version.reason,
+        label: "Source YAML",
+        source: version.source.content,
+      });
+    },
+    [deckId, storageConfig],
+  );
+
+  const compareVersions = useCallback(
+    async (leftVersionId: string, rightVersionId: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const [left, right] = await Promise.all([
+        storageConfig.adapter.loadVersion({
+          deckId,
+          namespace: storageConfig.namespace,
+          versionId: leftVersionId,
+        }),
+        storageConfig.adapter.loadVersion({
+          deckId,
+          namespace: storageConfig.namespace,
+          versionId: rightVersionId,
+        }),
+      ]);
+      if (!left || !right) {
+        return;
+      }
+      setVersionCompare({
+        title: "Comparaison de versions",
+        leftLabel: left.label ?? left.reason,
+        leftSource: left.source.content,
+        rightLabel: right.label ?? right.reason,
+        rightSource: right.source.content,
+      });
+    },
+    [deckId, storageConfig],
+  );
+
+  const restoreDraft = useCallback(async (): Promise<void> => {
+    if (!recoveryPrompt || !storageConfig) {
+      return;
+    }
+    if (storageConfig.createVersionBeforeDestructiveAction) {
+      await createVersion("before-version-restore", "Before recovery restore");
+    }
+    setSelectedSlideId(recoveryPrompt.draft.selectedSlideId);
+    publishSource(recoveryPrompt.draft.source, "crash-recovery", recoveryPrompt.draft.selectedSlideId);
+    await saveCurrentState(recoveryPrompt.draft.source, recoveryPrompt.draft.selectedSlideId);
+    await storageConfig.adapter.clearDraft({ deckId, namespace: storageConfig.namespace });
+    setRecoveryPrompt(null);
+  }, [createVersion, deckId, publishSource, recoveryPrompt, saveCurrentState, storageConfig]);
+
+  const previewDraft = useCallback((): void => {
+    if (!recoveryPrompt) {
+      return;
+    }
+    setVersionSource({
+      title: "Draft local",
+      label: "Source YAML",
+      source: recoveryPrompt.draft.source.content,
+    });
+  }, [recoveryPrompt]);
+
+  const compareDraftWithCurrent = useCallback((): void => {
+    if (!recoveryPrompt) {
+      return;
+    }
+    setVersionCompare({
+      title: "Draft vs courant",
+      leftLabel: "Draft local",
+      leftSource: recoveryPrompt.draft.source.content,
+      rightLabel: "Courant",
+      rightSource: recoveryPrompt.current?.source.content ?? source.content,
+    });
+  }, [recoveryPrompt, source.content]);
+
+  const createCopyFromDraft = useCallback(async (): Promise<void> => {
+    if (!recoveryPrompt) {
+      return;
+    }
+    await createVersionFromSource(
+      recoveryPrompt.draft.source,
+      "manual",
+      "Copie du draft de recovery",
+      recoveryPrompt.draft.selectedSlideId,
+    );
+    setVersionHistoryForcedOpen(true);
+    setRecoveryPrompt(null);
+  }, [createVersionFromSource, recoveryPrompt]);
+
+  const createCopyFromVersion = useCallback(
+    async (versionId: string): Promise<void> => {
+      if (!storageConfig) {
+        return;
+      }
+      const version = await storageConfig.adapter.loadVersion({
+        deckId,
+        namespace: storageConfig.namespace,
+        versionId,
+      });
+      if (!version) {
+        return;
+      }
+      await createVersionFromSource(
+        version.source,
+        "manual",
+        `Copie - ${version.label ?? version.reason}`,
+        version.selectedSlideId,
+      );
+      setVersionHistoryForcedOpen(true);
+      setRecoveryPrompt(null);
+    },
+    [createVersionFromSource, deckId, storageConfig],
+  );
+
+  const deleteRecoveryDraft = useCallback(async (): Promise<void> => {
+    if (!storageConfig) {
+      return;
+    }
+    await storageConfig.adapter.clearDraft({ deckId, namespace: storageConfig.namespace });
+    setRecoveryPrompt(null);
+  }, [deckId, storageConfig]);
+
+  const keepCurrentAfterRecovery = useCallback(async (): Promise<void> => {
+    if (!storageConfig) {
+      return;
+    }
+    await storageConfig.adapter.clearDraft({ deckId, namespace: storageConfig.namespace });
+    await saveCurrentState(source, selectedSlide?.id);
+    setRecoveryPrompt(null);
+  }, [deckId, saveCurrentState, selectedSlide?.id, source, storageConfig]);
 
   function selectSlide(slideId: string): void {
     focusEditorAfterSlideSelectRef.current = true;
@@ -432,6 +787,16 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       onSelectedSlideChange?.({ deckId, slideId: result.slideId });
     }
     updateSource(result.source, "slide-add", result.slideId);
+  }
+
+  function handleDeleteSlide(): void {
+    if (!selectedSlide) {
+      return;
+    }
+    if (storageConfig?.createVersionBeforeDestructiveAction) {
+      void createVersion("before-slide-delete", "Before slide delete");
+    }
+    updateSource(deleteSlide(source, selectedSlide.id), "slide-delete");
   }
 
   function handleSlideDragStart(event: DragEvent<HTMLButtonElement>, slideId: string): void {
@@ -673,7 +1038,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             {features.allowDeleteSlide && selectedSlide ? (
               <button
                 type="button"
-                onClick={() => updateSource(deleteSlide(source, selectedSlide.id), "slide-delete")}
+                onClick={handleDeleteSlide}
                 disabled={readOnly || (compiledDeck?.slides.length ?? 0) <= 1}
               >
                 Delete
@@ -740,24 +1105,22 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               <DiagnosticsList diagnostics={diagnostics} />
             </section>
           ) : null}
-          {layoutOptions.showVersionHistory && storageConfig ? (
-            <section>
-              <h3>Versions</h3>
-              <ul className="deck-version-list">
-                {versions.map((version) => (
-                  <li key={version.id}>
-                    <button
-                      type="button"
-                      onClick={() => void restoreVersion(version.id)}
-                      disabled={!features.allowVersionRestore || readOnly}
-                    >
-                      {version.label ?? version.reason}
-                    </button>
-                    <small>{new Date(version.createdAtIso).toLocaleString()}</small>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {(layoutOptions.showVersionHistory || versionHistoryForcedOpen) && storageConfig ? (
+            <VersionHistoryPanel
+              versions={versions}
+              readOnly={Boolean(readOnly)}
+              canRestore={features.allowVersionRestore}
+              canCompare={features.allowVersionCompare}
+              onCreateManualVersion={(label) => {
+                void saveCurrentState(source, selectedSlide?.id);
+                void createVersion("manual", label ?? "Manual save");
+              }}
+              onRestoreVersion={(versionId) => void restoreVersion(versionId)}
+              onDeleteVersion={(versionId) => void deleteVersionById(versionId)}
+              onRenameVersion={(versionId, label) => void renameVersion(versionId, label)}
+              onCompareWithCurrent={(versionId) => void compareWithCurrent(versionId)}
+              onCompareVersions={(leftVersionId, rightVersionId) => void compareVersions(leftVersionId, rightVersionId)}
+            />
           ) : null}
         </aside>
       ) : null}
@@ -767,6 +1130,48 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           readOnly={Boolean(readOnly)}
           onUpdate={updateSource}
           onClose={() => setGlobalDefaultsOpen(false)}
+        />
+      ) : null}
+      {recoveryPrompt ? (
+        <CrashRecoveryDialog
+          draft={recoveryPrompt.draft}
+          current={recoveryPrompt.current}
+          versions={recoveryPrompt.versions}
+          onRestoreDraft={() => void restoreDraft()}
+          onRestoreVersion={(versionId) => {
+            setRecoveryPrompt(null);
+            void restoreVersion(versionId);
+          }}
+          onPreviewDraft={previewDraft}
+          onPreviewVersion={(versionId) => void previewVersion(versionId)}
+          onCompareDraftWithCurrent={compareDraftWithCurrent}
+          onCompareVersionWithCurrent={(versionId) => void compareWithCurrent(versionId)}
+          onCreateCopyFromDraft={() => void createCopyFromDraft()}
+          onCreateCopyFromVersion={(versionId) => void createCopyFromVersion(versionId)}
+          onDeleteDraft={() => void deleteRecoveryDraft()}
+          onKeepCurrent={() => void keepCurrentAfterRecovery()}
+          onOpenVersionHistory={() => {
+            setVersionHistoryForcedOpen(true);
+            setRecoveryPrompt(null);
+          }}
+        />
+      ) : null}
+      {versionCompare ? (
+        <VersionCompareDialog
+          title={versionCompare.title}
+          leftLabel={versionCompare.leftLabel}
+          leftSource={versionCompare.leftSource}
+          rightLabel={versionCompare.rightLabel}
+          rightSource={versionCompare.rightSource}
+          onClose={() => setVersionCompare(null)}
+        />
+      ) : null}
+      {versionSource ? (
+        <VersionSourceDialog
+          title={versionSource.title}
+          label={versionSource.label}
+          source={versionSource.source}
+          onClose={() => setVersionSource(null)}
         />
       ) : null}
     </div>

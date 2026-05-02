@@ -24,7 +24,7 @@ export const defaultDeckStudioFeatureFlags: Required<DeckStudioFeatureFlags> = {
   allowRawSourceEdit: true,
   allowPdfExport: true,
   allowVersionRestore: true,
-  allowVersionCompare: false,
+  allowVersionCompare: true,
 };
 
 export const defaultDeckStorageConfig: Required<DeckStorageConfig> = {
