@@ -1,3 +1,5 @@
+@layer qastia.deck {
+
 .deck-screen-root,
 .deck-studio-root,
 .deck-print-root {
@@ -877,6 +879,8 @@
     page-break-after: always;
     width: 16in;
   }
+}
+
 }
 
 @page {

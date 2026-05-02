@@ -22,6 +22,7 @@ export async function compileDeck(
   context: CompileContext,
 ): Promise<CompileDeckResult> {
   const diagnostics: DeckDiagnostic[] = [];
+  const compileMode = context.compileMode ?? (context.mode === "editor" ? "authoring" : "strict");
   let parsed: unknown;
 
   try {
@@ -69,7 +70,11 @@ export async function compileDeck(
   const semanticDiagnostics = validateSemantics(rawDeck, context, diagnostics);
   diagnostics.push(...semanticDiagnostics);
 
-  const fatal = semanticDiagnostics.some((item) => item.code === "SLIDE_UNKNOWN_LAYOUT");
+  const fatal = semanticDiagnostics.some(
+    (item) =>
+      item.code === "SLIDE_UNKNOWN_LAYOUT" ||
+      (compileMode === "strict" && item.severity === "error"),
+  );
   if (fatal) {
     return invalid(source, diagnostics);
   }
@@ -118,7 +123,7 @@ export async function compileDeck(
     }
 
     for (const requiredSlot of layout.requiredSlots) {
-      if (!slots.has(requiredSlot)) {
+      if (!slots.has(requiredSlot) && compileMode === "authoring") {
         slots.set(requiredSlot, emptyMarkdownSlot(requiredSlot));
       }
     }
@@ -282,6 +287,7 @@ async function compileSlot(
     name: slotName,
     kind: content.kind === "renderer" ? "renderer" : content.kind,
     content,
+    origin: "source",
     diagnostics,
   };
 }
@@ -339,6 +345,7 @@ function emptyMarkdownSlot(slotName: SlotName): CompiledSlot {
       markdown: "",
       nodes: [{ kind: "markdown", markdown: "" }],
     },
+    origin: "synthetic",
     diagnostics: [],
   };
 }

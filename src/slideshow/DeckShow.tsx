@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { DeckShowProps } from "../publicTypes";
 import { DeckNavigationToolbar } from "./DeckNavigationToolbar";
 import { DeckViewport } from "./DeckViewport";
+import { shouldIgnoreDeckKeyboardEvent } from "./keyboard";
 import { useDeckNavigation } from "./useDeckNavigation";
 
 export function DeckShow({
@@ -57,7 +58,7 @@ export function DeckShow({
     }
 
     function handleKeyDown(event: KeyboardEvent): void {
-      if (isEditableEventTarget(event.target)) {
+      if (shouldIgnoreDeckKeyboardEvent(event)) {
         return;
       }
 
@@ -119,15 +120,5 @@ export function DeckShow({
       <DeckViewport deck={deck} activeIndex={activeIndex} />
       {controlsPlacement === "bottom" ? toolbar : null}
     </div>
-  );
-}
-
-function isEditableEventTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  return Boolean(
-    target.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']"),
   );
 }

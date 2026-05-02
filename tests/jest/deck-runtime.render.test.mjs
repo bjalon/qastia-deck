@@ -415,4 +415,13 @@ describe("deck-runtime public rendering", () => {
 
     expect(container.firstChild).toMatchSnapshot();
   });
+
+  it("exposes lightweight package entrypoints", async () => {
+    await expect(import("../../dist/viewer.js")).resolves.toHaveProperty("DeckShow");
+    await expect(import("../../dist/studio.js")).resolves.toHaveProperty("DeckStudio");
+    await expect(import("../../dist/presentation.js")).resolves.toHaveProperty("DeckPresentationOverlay");
+    await expect(import("../../dist/compiler.js")).resolves.toHaveProperty("compileDeck");
+    await expect(import("../../dist/runtime.js")).resolves.toHaveProperty("createDeckRuntime");
+    await expect(import("../../dist/pdf.js")).resolves.toHaveProperty("PrintDeck");
+  });
 });

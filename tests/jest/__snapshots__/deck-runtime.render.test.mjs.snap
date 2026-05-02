@@ -28,47 +28,52 @@ exports[`deck-runtime public rendering matches the stable DeckShow DOM snapshot 
       Next
     </button>
   </div>
-  <section
-    class="deck-slide-frame"
-    data-layout="cover"
-    data-slide-id="cover"
-    data-target="screen"
+  <div
+    class="deck-theme-surface deck-theme-fintech-light"
+    style="--deck-color-background: #ffffff; --deck-color-foreground: #111827; --deck-color-primary: #155eef; --deck-color-muted: #667085; --deck-color-danger: #d92d20; --deck-color-warning: #dc6803; --deck-font-heading: Inter, system-ui, sans-serif; --deck-font-body: Inter, system-ui, sans-serif; --deck-font-mono: JetBrains Mono, ui-monospace, monospace; --deck-slide-padding: 4rem; --deck-gap: 2rem;"
   >
-    <article
-      class="deck-layout deck-layout-cover"
+    <section
+      class="deck-slide-frame"
+      data-layout="cover"
+      data-slide-id="cover"
       data-target="screen"
     >
-      <div
-        class="deck-cover-copy"
+      <article
+        class="deck-layout deck-layout-cover"
+        data-target="screen"
       >
         <div
-          class="deck-title-slot deck-cover-title"
-          data-slot="title"
-          data-title-size="short"
-          data-title-variant="cover"
+          class="deck-cover-copy"
         >
           <div
-            class="deck-markdown"
+            class="deck-title-slot deck-cover-title"
+            data-slot="title"
+            data-title-size="short"
+            data-title-variant="cover"
           >
-            <h1>
-              Stable title
-            </h1>
+            <div
+              class="deck-markdown"
+            >
+              <h1>
+                Stable title
+              </h1>
+            </div>
           </div>
-        </div>
-        <div
-          class="deck-cover-subtitle"
-          data-slot="subtitle"
-        >
           <div
-            class="deck-markdown"
+            class="deck-cover-subtitle"
+            data-slot="subtitle"
           >
-            <p>
-              Runtime preview
-            </p>
+            <div
+              class="deck-markdown"
+            >
+              <p>
+                Runtime preview
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </article>
-  </section>
+      </article>
+    </section>
+  </div>
 </div>
 `;

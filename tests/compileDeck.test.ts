@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileDeck, defaultDeckRuntime, type DeckSource } from "../src";
+import { compileDeck, createDeckRuntime, defaultDeckRuntime, type DeckSource } from "../src";
 
 const validSource: DeckSource = {
   content: `
@@ -61,6 +61,58 @@ describe("compileDeck", () => {
       throw new Error("Expected valid deck.");
     }
     expect(result.deck.theme.cssClassName).toBe("deck-theme-qastia-coaching");
+  });
+
+  it("keeps incomplete decks renderable in authoring mode with synthetic slots", async () => {
+    const result = await compileDeck(
+      {
+        content: validSource.content.replace("layout: cover", "layout: title-body"),
+      },
+      {
+        runtime: defaultDeckRuntime,
+        mode: "editor",
+        compileMode: "authoring",
+        locale: "fr-FR",
+      },
+    );
+
+    expect(result.status).toBe("degraded");
+    if (result.status === "invalid") {
+      throw new Error("Expected degraded deck.");
+    }
+    expect(result.deck.slides[0].slots.get("body")?.origin).toBe("synthetic");
+  });
+
+  it("rejects incomplete decks in strict mode", async () => {
+    const result = await compileDeck(
+      {
+        content: validSource.content.replace("layout: cover", "layout: title-body"),
+      },
+      {
+        runtime: defaultDeckRuntime,
+        mode: "viewer",
+        compileMode: "strict",
+        locale: "fr-FR",
+      },
+    );
+
+    expect(result.status).toBe("invalid");
+    expect(result.diagnostics.some((diagnostic) => diagnostic.code === "LAYOUT_MISSING_SLOT")).toBe(true);
+  });
+
+  it("supports explicit registry collision strategies", () => {
+    expect(() =>
+      createDeckRuntime({
+        registryCollisionStrategy: "throw",
+        themes: [
+          ...Array.from(defaultDeckRuntime.themes.values()),
+          {
+            ...defaultDeckRuntime.themes.get("fintech-light")!,
+            displayName: "Duplicate",
+          },
+        ],
+      }),
+    ).toThrow(/Duplicate theme id 'fintech-light'/);
   });
 
   it("returns invalid diagnostics for unknown layouts", async () => {

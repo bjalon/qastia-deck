@@ -1,4 +1,4 @@
-import type { DeckSource, LayoutName, SlotName } from "../publicTypes";
+import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 type MutableDeck = Record<string, unknown> & {
     slides?: MutableSlide[];
 };
@@ -16,7 +16,7 @@ export declare function updateImageSlot(source: DeckSource, slideId: string, slo
     readonly src?: string;
     readonly alt?: string;
 }): DeckSource;
-export declare function updateSlideLayout(source: DeckSource, slideId: string, layout: LayoutName): DeckSource;
+export declare function updateSlideLayout(source: DeckSource, slideId: string, layout: LayoutName, layouts?: LayoutRegistry): DeckSource;
 export declare function addSlide(source: DeckSource, layout?: LayoutName): DeckSource;
 export declare function duplicateSlide(source: DeckSource, slideId: string): DeckSource;
 export declare function deleteSlide(source: DeckSource, slideId: string): DeckSource;

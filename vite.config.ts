@@ -6,9 +6,18 @@ export default defineConfig({
   plugins: [react()],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: {
+        "deck-runtime": resolve(__dirname, "src/index.ts"),
+        viewer: resolve(__dirname, "src/viewer.ts"),
+        studio: resolve(__dirname, "src/studio.ts"),
+        presentation: resolve(__dirname, "src/presentation.ts"),
+        compiler: resolve(__dirname, "src/compiler.ts"),
+        runtime: resolve(__dirname, "src/runtime.ts"),
+        pdf: resolve(__dirname, "src/pdf.ts"),
+      },
       name: "DeckRuntime",
-      fileName: "deck-runtime",
+      fileName: (_format, entryName) => `${entryName}.js`,
+      cssFileName: "deck-runtime",
       formats: ["es"],
     },
     rollupOptions: {

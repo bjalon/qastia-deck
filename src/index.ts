@@ -6,6 +6,7 @@ export { DeckPresentationOverlay } from "./presentation/DeckPresentationOverlay"
 export { PrintDeck } from "./pdf/PrintDeck";
 export { createDeckRuntime } from "./runtime/createDeckRuntime";
 export { defaultDeckRuntime } from "./runtime/defaultDeckRuntime";
+export { deckThemeStyle } from "./runtime/themeStyle";
 export { DeckShow } from "./slideshow/DeckShow";
 export { DeckStudio } from "./studio/DeckStudio";
 
@@ -23,6 +24,7 @@ export type {
   CompiledTransition,
   CompileContext,
   CompileDeckResult,
+  CompileMode,
   ContentRendererPlugin,
   CreateDeckRuntimeOptions,
   DeckAutosaveConfig,
@@ -69,6 +71,7 @@ export type {
   PdfExportRequest,
   PdfExportResult,
   RendererRegistry,
+  RegistryCollisionStrategy,
   SlideChangeEvent,
   SlotKind,
   SlotName,

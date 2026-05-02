@@ -4,6 +4,7 @@ import type {
   DeckPresentationOverlayProps,
 } from "../publicTypes";
 import { DeckViewport } from "../slideshow/DeckViewport";
+import { shouldIgnoreDeckKeyboardEvent } from "../slideshow/keyboard";
 import { useDeckNavigation } from "../slideshow/useDeckNavigation";
 import { PresentationControls } from "./PresentationControls";
 
@@ -149,6 +150,10 @@ export function DeckPresentationOverlay({
     }
 
     function handlePresentationKeys(event: KeyboardEvent): void {
+      if (shouldIgnoreDeckKeyboardEvent(event)) {
+        return;
+      }
+
       if (
         event.key === "Escape" ||
         event.key === "ArrowRight" ||

@@ -1,11 +1,12 @@
 import ReactMarkdown from "react-markdown";
-import type { CompiledContent, CompiledContentNode } from "../publicTypes";
+import type { CompiledContent, CompiledContentNode, RendererRegistry } from "../publicTypes";
 
 type ContentRendererProps = {
   readonly content: CompiledContent;
+  readonly renderers?: RendererRegistry;
 };
 
-export function ContentRenderer({ content }: ContentRendererProps): React.ReactElement {
+export function ContentRenderer({ content, renderers }: ContentRendererProps): React.ReactElement {
   if (content.kind === "image") {
     return (
       <img
@@ -28,13 +29,24 @@ export function ContentRenderer({ content }: ContentRendererProps): React.ReactE
   return (
     <div className="deck-markdown">
       {content.nodes.map((node, index) => (
-        <ContentNode key={`${node.kind}-${index}`} node={node} />
+        <ContentNode key={`${node.kind}-${index}`} node={node} renderers={renderers} />
       ))}
     </div>
   );
 }
 
-function ContentNode({ node }: { readonly node: CompiledContentNode }): React.ReactElement {
+function ContentNode({
+  node,
+  renderers,
+}: {
+  readonly node: CompiledContentNode;
+  readonly renderers?: RendererRegistry;
+}): React.ReactElement {
+  const PluginRenderer = renderers?.get(node.kind)?.render;
+  if (PluginRenderer) {
+    return <PluginRenderer node={node} />;
+  }
+
   if (node.kind === "code") {
     return (
       <pre className="deck-code-block">

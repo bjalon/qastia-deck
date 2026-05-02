@@ -1,5 +1,5 @@
 import YAML from "yaml";
-import type { DeckSource, LayoutName, SlotName } from "../publicTypes";
+import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 
 type MutableDeck = Record<string, unknown> & {
   slides?: MutableSlide[];
@@ -68,8 +68,16 @@ export function updateImageSlot(
   });
 }
 
-export function updateSlideLayout(source: DeckSource, slideId: string, layout: LayoutName): DeckSource {
+export function updateSlideLayout(
+  source: DeckSource,
+  slideId: string,
+  layout: LayoutName,
+  layouts?: LayoutRegistry,
+): DeckSource {
   return updateSlide(source, slideId, (slide) => {
+    if (layouts && slide.layout && slide.layout !== layout) {
+      slide.slots = migrateSlots(slide, layout, layouts);
+    }
     slide.layout = layout;
   });
 }
@@ -183,6 +191,32 @@ function ensureSlots(slide: MutableSlide): Record<string, unknown> {
     slide.slots = {};
   }
   return slide.slots;
+}
+
+function migrateSlots(
+  slide: MutableSlide,
+  toLayout: LayoutName,
+  layouts: LayoutRegistry,
+): Record<string, unknown> {
+  const previousSlots = isRecord(slide.slots) ? slide.slots : {};
+  const plan = slide.layout ? layouts.get(toLayout)?.migrateFrom?.[slide.layout] : undefined;
+
+  if (!plan) {
+    return previousSlots;
+  }
+
+  const nextSlots: Record<string, unknown> = {};
+
+  for (const operation of plan.operations) {
+    if (operation.kind !== "move-slot") {
+      continue;
+    }
+    if (operation.from in previousSlots) {
+      nextSlots[operation.to] = previousSlots[operation.from];
+    }
+  }
+
+  return nextSlots;
 }
 
 function uniqueSlideId(slides: readonly MutableSlide[], prefix: string): string {

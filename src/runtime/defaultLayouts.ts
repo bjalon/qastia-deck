@@ -27,6 +27,29 @@ export const defaultLayouts: readonly LayoutDefinition[] = [
         },
       ],
     },
+    migrateFrom: {
+      "title-body": {
+        from: "title-body",
+        to: "cover",
+        operations: [
+          { kind: "move-slot", from: "title", to: "title" },
+          { kind: "move-slot", from: "body", to: "subtitle" },
+          { kind: "move-slot", from: "footer", to: "footer" },
+        ],
+        diagnostics: [],
+      },
+      "two-columns": {
+        from: "two-columns",
+        to: "cover",
+        operations: [
+          { kind: "move-slot", from: "title", to: "title" },
+          { kind: "move-slot", from: "left", to: "subtitle" },
+          { kind: "move-slot", from: "footer", to: "footer" },
+          { kind: "drop-slot", slotName: "right", reason: "Cover layout has no second column." },
+        ],
+        diagnostics: [],
+      },
+    },
     component: CoverLayout,
   },
   {
@@ -49,6 +72,29 @@ export const defaultLayouts: readonly LayoutDefinition[] = [
           ],
         },
       ],
+    },
+    migrateFrom: {
+      cover: {
+        from: "cover",
+        to: "title-body",
+        operations: [
+          { kind: "move-slot", from: "title", to: "title" },
+          { kind: "move-slot", from: "subtitle", to: "body" },
+          { kind: "move-slot", from: "footer", to: "footer" },
+        ],
+        diagnostics: [],
+      },
+      "two-columns": {
+        from: "two-columns",
+        to: "title-body",
+        operations: [
+          { kind: "move-slot", from: "title", to: "title" },
+          { kind: "move-slot", from: "left", to: "body" },
+          { kind: "move-slot", from: "footer", to: "footer" },
+          { kind: "drop-slot", slotName: "right", reason: "Title/body layout has one body slot." },
+        ],
+        diagnostics: [],
+      },
     },
     component: TitleBodyLayout,
   },
@@ -73,6 +119,28 @@ export const defaultLayouts: readonly LayoutDefinition[] = [
           ],
         },
       ],
+    },
+    migrateFrom: {
+      cover: {
+        from: "cover",
+        to: "two-columns",
+        operations: [
+          { kind: "move-slot", from: "title", to: "title" },
+          { kind: "move-slot", from: "subtitle", to: "left" },
+          { kind: "move-slot", from: "footer", to: "footer" },
+        ],
+        diagnostics: [],
+      },
+      "title-body": {
+        from: "title-body",
+        to: "two-columns",
+        operations: [
+          { kind: "move-slot", from: "title", to: "title" },
+          { kind: "move-slot", from: "body", to: "left" },
+          { kind: "move-slot", from: "footer", to: "footer" },
+        ],
+        diagnostics: [],
+      },
     },
     component: TwoColumnsLayout,
   },

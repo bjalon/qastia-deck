@@ -224,6 +224,7 @@ export type CompiledSlot = {
   readonly name: SlotName;
   readonly kind: SlotKind;
   readonly content: CompiledContent;
+  readonly origin: "source" | "synthetic";
   readonly diagnostics: readonly DeckDiagnostic[];
 };
 
@@ -356,8 +357,11 @@ export type CompileDeckResult =
 export type CompileContext = {
   readonly runtime: DeckRuntime;
   readonly mode: "viewer" | "editor" | "print" | "thumbnail";
+  readonly compileMode?: CompileMode;
   readonly locale: string;
 };
+
+export type CompileMode = "authoring" | "strict";
 
 export type DeckRuntime = {
   readonly layouts: LayoutRegistry;
@@ -374,9 +378,12 @@ export type CreateDeckRuntimeOptions = {
   readonly renderers?: readonly ContentRendererPlugin[];
   readonly themes?: readonly ThemeDefinition[];
   readonly transitions?: readonly TransitionDefinition[];
+  readonly registryCollisionStrategy?: RegistryCollisionStrategy;
   readonly storage?: DeckPersistenceAdapter;
   readonly pdf?: PdfExportAdapter;
 };
+
+export type RegistryCollisionStrategy = "throw" | "override" | "keep-first";
 
 export type DeckStudioResponsiveMode = "auto" | "desktop" | "compact" | "mobile";
 
@@ -685,6 +692,14 @@ export interface DeckPersistenceAdapter {
 export type DeckPersistenceResult =
   | {
       readonly status: "success";
+    }
+  | {
+      readonly status: "unavailable";
+      readonly diagnostics: readonly DeckDiagnostic[];
+    }
+  | {
+      readonly status: "quota-exceeded";
+      readonly diagnostics: readonly DeckDiagnostic[];
     }
   | {
       readonly status: "failed";

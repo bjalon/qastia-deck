@@ -45,7 +45,11 @@ export class LocalStorageDeckPersistenceAdapter implements DeckPersistenceAdapte
 
   async clearDraft(request: ClearDraftRequest): Promise<DeckPersistenceResult> {
     try {
-      storage()?.removeItem(draftKey(request.namespace, request.deckId));
+      const storageArea = storage();
+      if (!storageArea) {
+        return unavailable();
+      }
+      storageArea.removeItem(draftKey(request.namespace, request.deckId));
       return { status: "success" };
     } catch (error) {
       return failed(error);
@@ -70,7 +74,7 @@ export class LocalStorageDeckPersistenceAdapter implements DeckPersistenceAdapte
 
     const stored = JSON.stringify(snapshot);
     const writeResult = await writeJson(versionKey(request.namespace, request.deckId, request.id), snapshot);
-    if (writeResult.status === "failed") {
+    if (writeResult.status !== "success") {
       return writeResult;
     }
 
@@ -114,7 +118,11 @@ export class LocalStorageDeckPersistenceAdapter implements DeckPersistenceAdapte
 
   async deleteVersion(request: DeleteDeckVersionRequest): Promise<DeckPersistenceResult> {
     try {
-      storage()?.removeItem(versionKey(request.namespace, request.deckId, request.versionId));
+      const storageArea = storage();
+      if (!storageArea) {
+        return unavailable();
+      }
+      storageArea.removeItem(versionKey(request.namespace, request.deckId, request.versionId));
       const index = await readIndex(request.namespace, request.deckId);
       const nextIndex: StoredVersionIndex = {
         ...index,
@@ -184,7 +192,11 @@ async function readIndex(namespace: string, deckId: string): Promise<StoredVersi
 
 function readJson<T>(key: string): T | null {
   try {
-    const raw = storage()?.getItem(key);
+    const storageArea = storage();
+    if (!storageArea) {
+      return null;
+    }
+    const raw = storageArea.getItem(key);
     if (!raw) {
       return null;
     }
@@ -196,11 +208,38 @@ function readJson<T>(key: string): T | null {
 
 function writeJson(key: string, value: unknown): DeckPersistenceResult {
   try {
-    storage()?.setItem(key, JSON.stringify(value));
+    const storageArea = storage();
+    if (!storageArea) {
+      return unavailable();
+    }
+    storageArea.setItem(key, JSON.stringify(value));
     return { status: "success" };
   } catch (error) {
+    if (isQuotaExceededError(error)) {
+      return quotaExceeded(error);
+    }
     return failed(error);
   }
+}
+
+function unavailable(): DeckPersistenceResult {
+  return {
+    status: "unavailable",
+    diagnostics: [
+      {
+        code: "STORAGE_VERSION_CORRUPTED",
+        severity: "warning",
+        message: "Local storage is unavailable in this environment.",
+      },
+    ],
+  };
+}
+
+function quotaExceeded(error: unknown): DeckPersistenceResult {
+  return {
+    status: "quota-exceeded",
+    diagnostics: [storageDiagnostic(error)],
+  };
 }
 
 function failed(error: unknown): DeckPersistenceResult {
@@ -208,6 +247,13 @@ function failed(error: unknown): DeckPersistenceResult {
     status: "failed",
     diagnostics: [storageDiagnostic(error)],
   };
+}
+
+function isQuotaExceededError(error: unknown): boolean {
+  return error instanceof DOMException && (
+    error.name === "QuotaExceededError" ||
+    error.name === "NS_ERROR_DOM_QUOTA_REACHED"
+  );
 }
 
 function storageDiagnostic(error: unknown): DeckDiagnostic {

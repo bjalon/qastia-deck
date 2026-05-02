@@ -19,8 +19,36 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/deck-runtime.js"
     },
+    "./viewer": {
+      "types": "./dist/types/viewer.d.ts",
+      "import": "./dist/viewer.js"
+    },
+    "./studio": {
+      "types": "./dist/types/studio.d.ts",
+      "import": "./dist/studio.js"
+    },
+    "./presentation": {
+      "types": "./dist/types/presentation.d.ts",
+      "import": "./dist/presentation.js"
+    },
+    "./compiler": {
+      "types": "./dist/types/compiler.d.ts",
+      "import": "./dist/compiler.js"
+    },
+    "./runtime": {
+      "types": "./dist/types/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
+    "./pdf": {
+      "types": "./dist/types/pdf.d.ts",
+      "import": "./dist/pdf.js"
+    },
     "./styles.css": "./dist/deck-runtime.css"
   },
+  "sideEffects": [
+    "*.css",
+    "./dist/deck-runtime.css"
+  ],
   "files": [
     "dist"
   ],
