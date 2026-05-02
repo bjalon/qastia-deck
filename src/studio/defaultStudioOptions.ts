@@ -3,7 +3,7 @@ import { LocalStorageDeckPersistenceAdapter } from "../storage/LocalStorageDeckP
 
 export const defaultDeckStudioLayoutOptions: Required<DeckStudioLayoutOptions> = {
   desktopBreakpointPx: 1024,
-  slideRailWidthPx: 260,
+  slideRailWidthPx: 220,
   inspectorWidthPx: 340,
   showSlideRail: true,
   showInspector: true,
@@ -18,7 +18,7 @@ export const defaultDeckStudioFeatureFlags: Required<DeckStudioFeatureFlags> = {
   allowAddSlide: true,
   allowDuplicateSlide: true,
   allowDeleteSlide: true,
-  allowReorderSlides: false,
+  allowReorderSlides: true,
   allowLayoutChange: true,
   allowThemeChange: true,
   allowRawSourceEdit: true,

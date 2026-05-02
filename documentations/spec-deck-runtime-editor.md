@@ -962,7 +962,8 @@ export type DeckStudioOptions = {
   };
 
   readonly editing?: {
-    readonly defaultMode?: "form" | "source";
+    readonly defaultMode?: "form" | "source" | "preview";
+    readonly viewModes?: readonly ("form" | "source" | "preview")[];
     readonly allowSourceMode?: boolean;
     readonly allowLayoutChange?: boolean;
   };
@@ -1182,9 +1183,29 @@ Le target `thumbnail` doit :
 
 ### 10.4. Drag and drop
 
-Le drag and drop est optionnel.
+Le drag and drop du `SlideRail` est supporté par le studio et reste configurable via :
 
-Pour garder le cœur léger, la première version peut se limiter à :
+```ts
+features={{
+  allowReorderSlides: true,
+}}
+```
+
+ou :
+
+```ts
+options={{
+  panels: {
+    slideRail: {
+      allowReorder: true,
+    },
+  },
+}}
+```
+
+Quand l’utilisateur dépose une slide sur une autre, l’ordre est réécrit dans la source YAML et la slide déplacée reste sélectionnée. Le comportement doit rester local au `SlideRail` : le renderer, le viewer et la présentation ne connaissent pas la mécanique de drag and drop.
+
+Des alternatives pourront être ajoutées ensuite pour l’accessibilité clavier :
 
 - boutons monter/descendre ;
 - menu contextuel ;

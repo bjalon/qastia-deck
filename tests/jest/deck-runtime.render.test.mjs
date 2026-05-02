@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import React from "react";
 import {
   DeckPresentationOverlay,
@@ -313,12 +313,67 @@ describe("deck-runtime public rendering", () => {
       expect(screen.getByText("Stable deck")).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: /1 cover cover/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /2 details title-body/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /1 Stable title cover/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /2 Details title-body/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
     expect(screen.getByLabelText("Subtitle")).toHaveValue("Runtime preview");
     expect(screen.getByLabelText("Title").tagName).toBe("INPUT");
     expect(screen.getByLabelText("Subtitle").tagName).toBe("INPUT");
+  });
+
+  it("inserts a new slide after the selected slide", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "add-after-selected-deck",
+        initialValue: source,
+        storage: false,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("New slide");
+    });
+
+    const slideButtons = within(screen.getByRole("navigation", { name: "Slides" })).getAllByRole("button");
+    expect(slideButtons).toHaveLength(3);
+    expect(slideButtons[0]).toHaveAccessibleName("1 Stable title cover");
+    expect(slideButtons[1]).toHaveAccessibleName("2 New slide title-body");
+    expect(slideButtons[2]).toHaveAccessibleName("3 Details title-body");
+  });
+
+  it("reorders slides with drag and drop", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "reorder-deck",
+        initialValue: source,
+        storage: false,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const slidesNav = screen.getByRole("navigation", { name: "Slides" });
+    const stableSlide = within(slidesNav).getByRole("button", { name: "1 Stable title cover" });
+    const detailsSlide = within(slidesNav).getByRole("button", { name: "2 Details title-body" });
+    const transfer = createDataTransfer();
+
+    fireEvent.dragStart(stableSlide, { dataTransfer: transfer });
+    fireEvent.drop(detailsSlide, { dataTransfer: transfer });
+
+    await waitFor(() => {
+      expect(within(slidesNav).getByRole("button", { name: "1 Details title-body" })).toBeInTheDocument();
+    });
+
+    expect(within(slidesNav).getByRole("button", { name: "2 Stable title cover" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
   });
 
   it("edits global defaults and enables per-slide overrides", async () => {
@@ -390,7 +445,33 @@ describe("deck-runtime public rendering", () => {
 
     fireEvent.change(viewSelect, { target: { value: "preview" } });
     expect(screen.getByRole("region", { name: "Slide preview" })).toHaveClass("deck-theme-fintech-light");
-    expect(screen.getByText("Stable title")).toBeInTheDocument();
+    expect(screen.getAllByText("Stable title").length).toBeGreaterThan(0);
+  });
+
+  it("can configure visible DeckStudio view modes", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "view-mode-options-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          editing: {
+            viewModes: ["form", "preview"],
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const viewSelect = screen.getByRole("combobox", { name: "Editor view" });
+    expect(Array.from(viewSelect.querySelectorAll("option")).map((option) => option.value)).toEqual([
+      "form",
+      "preview",
+    ]);
+    expect(screen.queryByText("YAML")).not.toBeInTheDocument();
   });
 
   it("supports DeckStudio panel options without legacy show flags", async () => {
@@ -501,3 +582,18 @@ describe("deck-runtime public rendering", () => {
     await expect(import("../../dist/pdf.js")).resolves.toHaveProperty("downloadDeckPdfFromElement");
   });
 });
+
+function createDataTransfer() {
+  const values = new Map();
+
+  return {
+    effectAllowed: "none",
+    dropEffect: "none",
+    setData(type, value) {
+      values.set(type, value);
+    },
+    getData(type) {
+      return values.get(type) ?? "";
+    },
+  };
+}

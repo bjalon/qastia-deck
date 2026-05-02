@@ -294,6 +294,7 @@ export type CreateDeckRuntimeOptions = {
 };
 export type RegistryCollisionStrategy = "throw" | "override" | "keep-first";
 export type DeckStudioResponsiveMode = "auto" | "desktop" | "compact" | "mobile";
+export type DeckStudioViewMode = "form" | "source" | "preview";
 export type DeckStudioProps = ControlledDeckStudioProps | UncontrolledDeckStudioProps;
 export type ControlledDeckStudioProps = DeckStudioSharedProps & {
     readonly mode: "controlled";
@@ -343,7 +344,8 @@ export type DeckStudioLayoutOptions = {
 export type DeckStudioOptions = {
     readonly panels?: DeckStudioPanelsOptions;
     readonly editing?: {
-        readonly defaultMode?: "form" | "source";
+        readonly defaultMode?: DeckStudioViewMode;
+        readonly viewModes?: readonly DeckStudioViewMode[];
         readonly allowSourceMode?: boolean;
         readonly allowLayoutChange?: boolean;
     };

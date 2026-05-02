@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DragEvent } from "react";
 import { compileDeck } from "../compiler/compileDeck";
 import { summarizeDiagnostics } from "../compiler/diagnostics";
 import { hashSource } from "../compiler/hash";
 import { DebugDeckFallback, DiagnosticsList } from "../debug/DebugDeckFallback";
 import type {
   CompileDeckResult,
+  CompiledSlide,
   DeckSource,
   DeckSourceChangeEvent,
   DeckSourceChangeReason,
   DeckStudioProps,
+  DeckStudioViewMode,
   DeckVersionReason,
   DeckVersionSummary,
 } from "../publicTypes";
@@ -27,12 +30,12 @@ import {
   duplicateSlide,
   getDefaultSlotMarkdown,
   hasDefaultSlot,
+  moveSlide,
+  type SlideMovePlacement,
   updateSlideLayout,
 } from "./editableSource";
 import { SlideFormEditor } from "./form/SlideFormEditor";
 import { GlobalDefaultsDialog } from "./global/GlobalDefaultsDialog";
-
-type DeckStudioViewMode = "form" | "source" | "preview";
 
 export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const {
@@ -64,12 +67,19 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     initialSelectedSlideId,
   );
   const [viewMode, setViewMode] = useState<DeckStudioViewMode>(
-    studioOptions?.editing?.defaultMode === "source" ? "source" : "form",
+    studioOptions?.editing?.defaultMode ?? "form",
   );
   const [globalDefaultsOpen, setGlobalDefaultsOpen] = useState(false);
+  const [slideDragState, setSlideDragState] = useState<{
+    readonly draggedSlideId: string;
+    readonly targetSlideId?: string;
+    readonly placement?: SlideMovePlacement;
+  } | null>(null);
   const [versions, setVersions] = useState<readonly DeckVersionSummary[]>([]);
+  const mainRef = useRef<HTMLElement | null>(null);
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
+  const focusEditorAfterSlideSelectRef = useRef(false);
 
   onCompileRef.current = onCompile;
   onErrorRef.current = onError;
@@ -144,6 +154,15 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
 
     return nextFeatures;
   }, [featuresProps, studioOptions]);
+  const availableViewModes = useMemo<readonly DeckStudioViewMode[]>(() => {
+    const configuredModes = studioOptions?.editing?.viewModes ?? ["form", "source", "preview"];
+    const uniqueModes = configuredModes.filter(
+      (mode, index, modes): mode is DeckStudioViewMode =>
+        (mode === "form" || mode === "source" || mode === "preview") && modes.indexOf(mode) === index,
+    );
+    const nextModes = uniqueModes.filter((mode) => mode !== "source" || features.allowRawSourceEdit);
+    return nextModes.length > 0 ? nextModes : ["form"];
+  }, [features.allowRawSourceEdit, studioOptions]);
   const storageConfig = useMemo(
     () =>
       storage === false
@@ -390,18 +409,105 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   );
 
   function selectSlide(slideId: string): void {
+    focusEditorAfterSlideSelectRef.current = true;
     setSelectedSlideId(slideId);
     onSelectedSlideChange?.({ deckId, slideId });
   }
 
-  function updateSource(nextSource: DeckSource, reason: DeckSourceChangeReason): void {
-    publishSource(nextSource, reason, selectedSlide?.id);
+  function updateSource(
+    nextSource: DeckSource,
+    reason: DeckSourceChangeReason,
+    nextSelectedSlideId = selectedSlide?.id,
+  ): void {
+    publishSource(nextSource, reason, nextSelectedSlideId);
+  }
+
+  function handleAddSlide(): void {
+    const result = addSlide(source, "title-body", selectedSlide?.id);
+    if (result.slideId) {
+      setSelectedSlideId(result.slideId);
+      onSelectedSlideChange?.({ deckId, slideId: result.slideId });
+    }
+    updateSource(result.source, "slide-add", result.slideId);
+  }
+
+  function handleSlideDragStart(event: DragEvent<HTMLButtonElement>, slideId: string): void {
+    if (!features.allowReorderSlides || readOnly) {
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-qastia-slide-id", slideId);
+    event.dataTransfer.setData("text/plain", slideId);
+    setSlideDragState({ draggedSlideId: slideId });
+  }
+
+  function handleSlideDragOver(event: DragEvent<HTMLButtonElement>, targetSlideId: string): void {
+    const draggedSlideId = slideDragState?.draggedSlideId;
+    if (!features.allowReorderSlides || readOnly || !draggedSlideId || draggedSlideId === targetSlideId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setSlideDragState({
+      draggedSlideId,
+      targetSlideId,
+      placement: getSlideDropPlacement(event),
+    });
+  }
+
+  function handleSlideDrop(event: DragEvent<HTMLButtonElement>, targetSlideId: string): void {
+    const draggedSlideId =
+      slideDragState?.draggedSlideId ||
+      event.dataTransfer.getData("application/x-qastia-slide-id") ||
+      event.dataTransfer.getData("text/plain");
+
+    if (!features.allowReorderSlides || readOnly || !draggedSlideId || draggedSlideId === targetSlideId) {
+      setSlideDragState(null);
+      return;
+    }
+
+    event.preventDefault();
+    const placement =
+      slideDragState?.targetSlideId === targetSlideId && slideDragState.placement
+        ? slideDragState.placement
+        : getSlideDropPlacement(event);
+
+    setSlideDragState(null);
+    setSelectedSlideId(draggedSlideId);
+    updateSource(moveSlide(source, draggedSlideId, targetSlideId, placement), "slide-reorder", draggedSlideId);
+    onSelectedSlideChange?.({ deckId, slideId: draggedSlideId });
   }
 
   const diagnostics = compileResult?.diagnostics ?? [];
-  const effectiveViewMode = viewMode === "source" && !features.allowRawSourceEdit ? "form" : viewMode;
+  const effectiveViewMode = availableViewModes.includes(viewMode) ? viewMode : availableViewModes[0];
   const previewThemeClassName = compiledDeck?.theme.cssClassName ?? "";
   const previewThemeStyle = compiledDeck ? deckThemeStyle(compiledDeck.theme) : undefined;
+
+  useEffect(() => {
+    if (!focusEditorAfterSlideSelectRef.current) {
+      return;
+    }
+    focusEditorAfterSlideSelectRef.current = false;
+
+    const mainElement = mainRef.current;
+    const editorSurface = mainElement?.querySelector<HTMLElement>(
+      ".deck-studio-editor, .deck-source-editor, .deck-studio-preview-main",
+    );
+    const focusTarget = editorSurface?.matches("textarea")
+      ? editorSurface
+      : editorSurface?.querySelector<HTMLElement>(
+        "input:not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly]), select:not([disabled]), button:not([disabled])",
+      );
+
+    if (focusTarget) {
+      focusTarget.focus();
+      return;
+    }
+
+    mainElement?.focus();
+  }, [effectiveViewMode, selectedSlide?.id]);
 
   return (
     <div
@@ -415,7 +521,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           <header>
             <strong>{compiledDeck?.metadata.title ?? "Deck"}</strong>
             {features.allowAddSlide ? (
-              <button type="button" onClick={() => updateSource(addSlide(source), "slide-add")} disabled={readOnly}>
+              <button type="button" onClick={handleAddSlide} disabled={readOnly}>
                 Add
               </button>
             ) : null}
@@ -426,10 +532,22 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
                 type="button"
                 key={slide.id}
                 className={slide.id === selectedSlide?.id ? "is-active" : undefined}
+                draggable={features.allowReorderSlides && !readOnly}
+                data-drop-position={slideDragState?.targetSlideId === slide.id ? slideDragState.placement : undefined}
+                aria-grabbed={slideDragState?.draggedSlideId === slide.id ? "true" : undefined}
                 onClick={() => selectSlide(slide.id)}
+                onDragStart={(event) => handleSlideDragStart(event, slide.id)}
+                onDragOver={(event) => handleSlideDragOver(event, slide.id)}
+                onDragLeave={() => {
+                  if (slideDragState?.targetSlideId === slide.id) {
+                    setSlideDragState({ draggedSlideId: slideDragState.draggedSlideId });
+                  }
+                }}
+                onDrop={(event) => handleSlideDrop(event, slide.id)}
+                onDragEnd={() => setSlideDragState(null)}
               >
                 <span>{slide.index + 1}</span>
-                <span>{slide.id}</span>
+                <span>{slideDisplayTitle(slide)}</span>
                 <small>{slide.layout.name}</small>
               </button>
             ))}
@@ -437,25 +555,47 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
         </aside>
       ) : null}
 
-      <main className="deck-studio-main">
+      <main className="deck-studio-main" ref={mainRef} tabIndex={-1}>
         <header className="deck-studio-header">
           <div className="deck-studio-slide-heading">
-            <strong>{effectiveViewMode === "source" ? "Source" : selectedSlide?.id ?? "Source"}</strong>
-            {effectiveViewMode !== "source" && selectedSlide ? (
-              <small>{selectedSlide.layout.definition.displayName}</small>
+            {features.allowLayoutChange && selectedSlide && effectiveViewMode !== "source" ? (
+              <label className="deck-layout-select">
+                <select
+                  aria-label="Layout de la slide"
+                  value={selectedSlide.layout.name}
+                  onChange={(event) => {
+                    if (storageConfig?.createVersionBeforeDestructiveAction) {
+                      void createVersion("before-layout-change", "Before layout change");
+                    }
+                    updateSource(
+                      updateSlideLayout(source, selectedSlide.id, event.currentTarget.value, runtime.layouts),
+                      "layout-change",
+                    );
+                  }}
+                  disabled={readOnly}
+                >
+                  {Array.from(runtime.layouts.values()).map((layout) => (
+                    <option key={layout.name} value={layout.name}>
+                      {layout.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
             ) : null}
           </div>
           <div className="deck-studio-actions">
-            {layoutOptions.showSourceModeToggle ? (
+            {layoutOptions.showSourceModeToggle && availableViewModes.length > 1 ? (
               <label className="deck-view-mode-select">
                 <span>Editor view</span>
                 <select
-                  value={viewMode}
+                  value={effectiveViewMode}
                   onChange={(event) => setViewMode(event.currentTarget.value as DeckStudioViewMode)}
                 >
-                  <option value="form">Form</option>
-                  {features.allowRawSourceEdit ? <option value="source">YAML</option> : null}
-                  <option value="preview">Preview</option>
+                  {availableViewModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {viewModeLabel(mode)}
+                    </option>
+                  ))}
                 </select>
               </label>
             ) : null}
@@ -506,6 +646,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           <section
             className={`deck-studio-preview deck-studio-preview-main ${previewThemeClassName}`}
             aria-label="Slide preview"
+            tabIndex={-1}
             style={previewThemeStyle}
           >
             <SlideRenderer slide={selectedSlide} target="screen" />
@@ -520,30 +661,6 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               readOnly={Boolean(readOnly)}
               onUpdate={updateSource}
             />
-            {features.allowLayoutChange ? (
-              <label className="deck-form-field">
-                <span>Layout</span>
-                <select
-                  value={selectedSlide.layout.name}
-                  onChange={(event) => {
-                    if (storageConfig?.createVersionBeforeDestructiveAction) {
-                      void createVersion("before-layout-change", "Before layout change");
-                    }
-                    updateSource(
-                      updateSlideLayout(source, selectedSlide.id, event.currentTarget.value, runtime.layouts),
-                      "layout-change",
-                    );
-                  }}
-                  disabled={readOnly}
-                >
-                  {Array.from(runtime.layouts.values()).map((layout) => (
-                    <option key={layout.name} value={layout.name}>
-                      {layout.displayName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
           </div>
         ) : compileResult?.status === "invalid" ? (
           <DebugDeckFallback fallback={compileResult.fallback} />
@@ -616,4 +733,34 @@ function sessionId(): string {
 function createVersionId(): string {
   const random = Math.random().toString(16).slice(2, 10);
   return `${new Date().toISOString().replace(/[:.]/g, "-")}_${random}`;
+}
+
+function viewModeLabel(mode: DeckStudioViewMode): string {
+  if (mode === "source") {
+    return "YAML";
+  }
+  if (mode === "preview") {
+    return "Preview";
+  }
+  return "Form";
+}
+
+function slideDisplayTitle(slide: CompiledSlide): string {
+  const titleSlot = slide.slots.get("title");
+  const markdown = titleSlot?.content.kind === "markdown" ? titleSlot.content.markdown : undefined;
+  const title = markdown
+    ?.split(/\r?\n/)
+    .map((line) => line.replace(/^#{1,6}\s+/, "").trim())
+    .find((line) => line.length > 0);
+
+  return title ?? `Slide ${slide.index + 1}`;
+}
+
+function getSlideDropPlacement(event: DragEvent<HTMLElement>): SlideMovePlacement {
+  const rect = event.currentTarget.getBoundingClientRect();
+  if (rect.height <= 0) {
+    return "after";
+  }
+
+  return event.clientY > rect.top + rect.height / 2 ? "after" : "before";
 }

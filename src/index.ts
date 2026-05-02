@@ -59,6 +59,7 @@ export type {
   DeckStudioOptions,
   DeckStudioPanelsOptions,
   PresentationControlsOptions,
+  DeckStudioViewMode,
   ActiveSlidePreviewOptions,
   DiagnosticsPanelOptions,
   InspectorOptions,

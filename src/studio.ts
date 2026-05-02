@@ -11,6 +11,7 @@ export type {
   DeckStudioOptions,
   DeckStudioPanelsOptions,
   DeckStudioProps,
+  DeckStudioViewMode,
   DiagnosticsPanelOptions,
   InspectorOptions,
   SlideRailOptions,

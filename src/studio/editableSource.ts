@@ -16,6 +16,8 @@ type MutableSlide = Record<string, unknown> & {
   slots?: Record<string, unknown>;
 };
 
+export type SlideMovePlacement = "before" | "after";
+
 export function parseMutableDeck(source: DeckSource): MutableDeck | null {
   try {
     const parsed = YAML.parse(source.content);
@@ -136,24 +138,30 @@ export function updateSlideLayout(
   });
 }
 
-export function addSlide(source: DeckSource, layout: LayoutName = "title-body"): DeckSource {
+export function addSlide(
+  source: DeckSource,
+  layout: LayoutName = "title-body",
+  afterSlideId?: string,
+): { readonly source: DeckSource; readonly slideId?: string } {
   const deck = parseMutableDeck(source);
   if (!deck) {
-    return source;
+    return { source };
   }
 
   const slides = getMutableSlides(deck);
   const id = uniqueSlideId(slides, "slide");
-  slides.push({
+  const slide: MutableSlide = {
     id,
     layout,
     slots: {
       title: { markdown: "New slide" },
       body: { markdown: "" },
     },
-  });
+  };
+  const insertIndex = afterSlideId ? slides.findIndex((candidate) => candidate.id === afterSlideId) : -1;
+  slides.splice(insertIndex >= 0 ? insertIndex + 1 : slides.length, 0, slide);
   deck.slides = slides;
-  return stringifyMutableDeck(source, deck);
+  return { source: stringifyMutableDeck(source, deck), slideId: id };
 }
 
 export function duplicateSlide(source: DeckSource, slideId: string): DeckSource {
@@ -183,6 +191,38 @@ export function deleteSlide(source: DeckSource, slideId: string): DeckSource {
 
   const slides = getMutableSlides(deck).filter((slide) => slide.id !== slideId);
   deck.slides = slides.length > 0 ? slides : getMutableSlides(deck);
+  return stringifyMutableDeck(source, deck);
+}
+
+export function moveSlide(
+  source: DeckSource,
+  slideId: string,
+  targetSlideId: string,
+  placement: SlideMovePlacement,
+): DeckSource {
+  if (slideId === targetSlideId) {
+    return source;
+  }
+
+  const deck = parseMutableDeck(source);
+  if (!deck) {
+    return source;
+  }
+
+  const slides = getMutableSlides(deck);
+  const sourceIndex = slides.findIndex((slide) => slide.id === slideId);
+  const targetIndex = slides.findIndex((slide) => slide.id === targetSlideId);
+
+  if (sourceIndex < 0 || targetIndex < 0) {
+    return source;
+  }
+
+  const [slide] = slides.splice(sourceIndex, 1);
+  const targetIndexAfterRemoval = slides.findIndex((candidate) => candidate.id === targetSlideId);
+  const insertionIndex = placement === "after" ? targetIndexAfterRemoval + 1 : targetIndexAfterRemoval;
+
+  slides.splice(insertionIndex, 0, slide);
+  deck.slides = slides;
   return stringifyMutableDeck(source, deck);
 }
 

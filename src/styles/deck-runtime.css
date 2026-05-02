@@ -532,6 +532,7 @@
   color: #111827;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 720px;
 }
 
@@ -552,15 +553,20 @@
   background: #ffffff;
   border-color: #e5e7eb;
   border-style: solid;
-  overflow: auto;
+  min-height: 0;
 }
 
 .deck-studio-rail {
   border-width: 0 1px 0 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-width: 240px;
+  overflow: hidden;
 }
 
 .deck-studio-inspector {
   border-width: 0 0 0 1px;
+  overflow: auto;
   padding: 1rem;
 }
 
@@ -590,10 +596,58 @@
   overflow-wrap: anywhere;
 }
 
+.deck-layout-select {
+  align-items: center;
+  display: inline-flex;
+  margin-top: 0.35rem;
+  max-width: min(100%, 20rem);
+  position: relative;
+}
+
+.deck-layout-select select {
+  appearance: none;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #cfd6e4;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  color: #1f2a44;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.2;
+  max-width: 100%;
+  min-height: 2.2rem;
+  min-width: 11rem;
+  padding: 0.45rem 2.15rem 0.45rem 0.85rem;
+  text-overflow: ellipsis;
+}
+
+.deck-layout-select::after {
+  border-bottom: 2px solid #475467;
+  border-right: 2px solid #475467;
+  content: "";
+  height: 0.42rem;
+  pointer-events: none;
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-65%) rotate(45deg);
+  width: 0.42rem;
+}
+
+.deck-layout-select:focus-within select {
+  border-color: #155eef;
+  box-shadow: 0 0 0 4px rgba(21, 94, 239, 0.12);
+}
+
 .deck-studio-rail nav {
   display: grid;
   gap: 0.5rem;
+  min-height: 0;
+  overflow: auto;
   padding: 0.75rem;
+  scrollbar-gutter: stable;
 }
 
 .deck-studio-rail nav button {
@@ -604,7 +658,41 @@
   display: grid;
   gap: 0.2rem;
   padding: 0.75rem;
+  position: relative;
   text-align: left;
+}
+
+.deck-studio-rail nav button[draggable="true"] {
+  cursor: grab;
+}
+
+.deck-studio-rail nav button[aria-grabbed="true"] {
+  cursor: grabbing;
+  opacity: 0.58;
+}
+
+.deck-studio-rail nav button[data-drop-position="before"],
+.deck-studio-rail nav button[data-drop-position="after"] {
+  border-color: #155eef;
+}
+
+.deck-studio-rail nav button[data-drop-position="before"]::before,
+.deck-studio-rail nav button[data-drop-position="after"]::after {
+  background: #155eef;
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  left: 0.65rem;
+  position: absolute;
+  right: 0.65rem;
+}
+
+.deck-studio-rail nav button[data-drop-position="before"]::before {
+  top: -0.45rem;
+}
+
+.deck-studio-rail nav button[data-drop-position="after"]::after {
+  bottom: -0.45rem;
 }
 
 .deck-studio-rail nav button.is-active {

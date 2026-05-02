@@ -1,4 +1,4 @@
-import { D as r } from "./DeckStudio-0dq-FHH-.js";
+import { D as r } from "./DeckStudio-DrptK1-M.js";
 export {
   r as DeckStudio
 };

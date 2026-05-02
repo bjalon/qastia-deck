@@ -334,9 +334,14 @@ function IntegratedExample(): React.ReactElement {
                 showVersionHistory: false,
                 showSourceModeToggle: true,
                 showActiveSlidePreview: false,
-                slideRailWidthPx: 240,
+                slideRailWidthPx: 220,
                 inspectorWidthPx: 240,
                 density: "compact",
+              }}
+              options={{
+                editing: {
+                  viewModes: ["form", "source", "preview"],
+                },
               }}
               features={{
                 allowPdfExport: false,
