@@ -23,7 +23,6 @@ export default defineConfig({
         "@codemirror/state",
         "@codemirror/view",
         "@hookform/resolvers",
-        "mermaid",
         "react-hook-form",
         "unified",
       ],

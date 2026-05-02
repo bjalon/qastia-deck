@@ -1,0 +1,70 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`deck-runtime public rendering matches the stable DeckShow DOM snapshot 1`] = `
+<div
+  class="deck-screen-root deck-theme-fintech-light"
+  data-mode="embedded"
+>
+  <div
+    aria-label="Deck navigation"
+    class="deck-show-toolbar"
+  >
+    <button
+      disabled=""
+      type="button"
+    >
+      Previous
+    </button>
+    <span>
+      1
+       / 
+      2
+    </span>
+    <button
+      type="button"
+    >
+      Next
+    </button>
+  </div>
+  <section
+    class="deck-slide-frame"
+    data-layout="cover"
+    data-slide-id="cover"
+    data-target="screen"
+  >
+    <article
+      class="deck-layout deck-layout-cover"
+      data-target="screen"
+    >
+      <div
+        class="deck-cover-copy"
+      >
+        <div
+          class="deck-cover-title"
+          data-slot="title"
+        >
+          <div
+            class="deck-markdown"
+          >
+            <h1>
+              Stable title
+            </h1>
+          </div>
+        </div>
+        <div
+          class="deck-cover-subtitle"
+          data-slot="subtitle"
+        >
+          <div
+            class="deck-markdown"
+          >
+            <p>
+              Runtime preview
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+</div>
+`;
