@@ -98,13 +98,17 @@ const slideThemeOptions = Array.from(defaultDeckRuntime.themes.values()).filter(
   (theme) => theme.id !== "default",
 );
 
-type WorkspaceMenu = "presentation" | "panels" | null;
+type WorkspaceMenu = "presentation" | "theme" | "panels" | null;
 
 const previewPanelStorageKey = "qastia-deck-example:panel-preview";
 const diagnosticsPanelStorageKey = "qastia-deck-example:panel-diagnostics";
+const themeStorageKey = "qastia-deck-example:theme";
 
 function IntegratedExample(): React.ReactElement {
-  const [source, setSource] = useState<DeckSource>(initialSource);
+  const [source, setSource] = useState<DeckSource>(() => {
+    const storedThemeId = readStoredThemeId();
+    return storedThemeId ? updateDeckTheme(initialSource, storedThemeId) : initialSource;
+  });
   const [compileResult, setCompileResult] = useState<CompileDeckResult | null>(null);
   const [showPreviewPane, setShowPreviewPane] = useState(() =>
     readStoredBoolean(previewPanelStorageKey, true),
@@ -157,6 +161,10 @@ function IntegratedExample(): React.ReactElement {
   }, [showDiagnostics]);
 
   useEffect(() => {
+    window.localStorage.setItem(themeStorageKey, activeThemeId);
+  }, [activeThemeId]);
+
+  useEffect(() => {
     if (!openMenu) {
       return;
     }
@@ -206,7 +214,7 @@ function IntegratedExample(): React.ReactElement {
                 onClick={() => setOpenMenu((current) => (current === "presentation" ? null : "presentation"))}
                 disabled={!canPresent}
               >
-                <span aria-hidden="true">⌄</span>
+                <ChevronIcon />
               </button>
               {openMenu === "presentation" ? (
                 <div className="workspace-menu" role="menu">
@@ -225,29 +233,43 @@ function IntegratedExample(): React.ReactElement {
                 </div>
               ) : null}
             </div>
-            <label className="workspace-select">
-              <span>Style des slides</span>
-              <select
-                value={activeThemeId}
-                onChange={(event) => {
-                  const nextThemeId = event.currentTarget.value;
-                  setSource((currentSource) => updateDeckTheme(currentSource, nextThemeId));
-                }}
+            <div className="menu-action theme-action" onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                aria-label="Style des slides"
+                aria-expanded={openMenu === "theme"}
+                onClick={() => setOpenMenu((current) => (current === "theme" ? null : "theme"))}
               >
-                {slideThemeOptions.map((theme) => (
-                  <option key={theme.id} value={theme.id}>
-                    {theme.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <span>{activeThemeLabel(activeThemeId)}</span>
+                <ChevronIcon />
+              </button>
+              {openMenu === "theme" ? (
+                <div className="workspace-menu" role="menu">
+                  {slideThemeOptions.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={activeThemeId === theme.id}
+                      onClick={() => {
+                        setSource((currentSource) => updateDeckTheme(currentSource, theme.id));
+                        setOpenMenu(null);
+                      }}
+                    >
+                      <span>{theme.displayName}</span>
+                      {activeThemeId === theme.id ? <span className="menu-check">✓</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             <div className="menu-action" onClick={(event) => event.stopPropagation()}>
               <button
                 type="button"
                 aria-expanded={openMenu === "panels"}
                 onClick={() => setOpenMenu((current) => (current === "panels" ? null : "panels"))}
               >
-                Panels <span aria-hidden="true">⌄</span>
+                Panels <ChevronIcon />
               </button>
               {openMenu === "panels" ? (
                 <div className="workspace-menu" role="menu">
@@ -427,6 +449,27 @@ function readStoredBoolean(key: string, fallback: boolean): boolean {
     return false;
   }
   return fallback;
+}
+
+function readStoredThemeId(): string | undefined {
+  const value = window.localStorage.getItem(themeStorageKey);
+  if (!value) {
+    return undefined;
+  }
+  return slideThemeOptions.some((theme) => theme.id === value) ? value : undefined;
+}
+
+function activeThemeLabel(themeId: string): string {
+  return slideThemeOptions.find((theme) => theme.id === themeId)?.displayName ?? themeId;
+}
+
+function ChevronIcon({ className }: { readonly className?: string }): React.ReactElement {
+  return (
+    <span
+      aria-hidden="true"
+      className={["workspace-chevron", className].filter(Boolean).join(" ")}
+    />
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
