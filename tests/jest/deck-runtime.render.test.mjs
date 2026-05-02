@@ -395,7 +395,8 @@ describe("deck-runtime public rendering", () => {
     await waitFor(() => {
       expect(screen.getByRole("dialog", { name: "Version vs courant" })).toBeInTheDocument();
     });
-    expect(screen.getAllByDisplayValue(/Stable deck/)).toHaveLength(2);
+    expect(screen.getByLabelText("Diff des versions")).toHaveTextContent("Stable deck");
+    expect(screen.getByText("0 ajout(s)")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
@@ -467,12 +468,12 @@ describe("deck-runtime public rendering", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("dialog", { name: "Une version locale plus récente existe" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "Tu as un travail non récupéré" })).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
 
-    fireEvent.click(screen.getByRole("button", { name: "Restaurer cette version" }));
+    fireEvent.click(screen.getByRole("button", { name: "Récupérer mon travail" }));
 
     await waitFor(() => {
       expect(screen.getByLabelText("Title")).toHaveValue("Recovered title");
@@ -505,18 +506,20 @@ describe("deck-runtime public rendering", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("dialog", { name: "Une version locale plus récente existe" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "Tu as un travail non récupéré" })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Comparer avec la version actuelle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Voir les différences" }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog", { name: "Draft vs courant" })).toBeInTheDocument();
     });
-    expect(screen.getByDisplayValue(/Draft actions title/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Diff des versions")).toHaveTextContent("Draft actions title");
+    expect(screen.getByText("1 ajout(s)")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Fermer" })[0]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Ouvrir en lecture seule" }));
+    fireEvent.click(screen.getByText("Options avancées"));
+    fireEvent.click(screen.getByRole("button", { name: "Voir le contenu récupéré" }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog", { name: "Draft local" })).toBeInTheDocument();
@@ -557,13 +560,14 @@ describe("deck-runtime public rendering", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole("dialog", { name: "Une version locale plus récente existe" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "Tu as un travail non récupéré" })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Supprimer le draft" }));
+    fireEvent.click(screen.getByText("Options avancées"));
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer définitivement cette récupération" }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Une version locale plus récente existe" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Tu as un travail non récupéré" })).not.toBeInTheDocument();
     });
     expect(window.localStorage.getItem("deck-runtime:v1:recovery-delete-deck:draft")).toBeNull();
   });

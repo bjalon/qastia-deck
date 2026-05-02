@@ -34,6 +34,8 @@ export function CrashRecoveryDialog({
   onOpenVersionHistory,
 }: CrashRecoveryDialogProps): React.ReactElement {
   const recentVersions = versions.slice(0, 4);
+  const draftUpdatedAt = formatDateTime(draft.updatedAtIso);
+  const currentUpdatedAt = current ? formatDateTime(current.updatedAtIso) : "Aucune sauvegarde courante";
 
   return (
     <div className="deck-modal-backdrop" role="presentation">
@@ -43,88 +45,160 @@ export function CrashRecoveryDialog({
         className="deck-modal-dialog deck-recovery-dialog"
         role="dialog"
       >
-        <header>
+        <header className="deck-recovery-header">
           <div>
-            <p>Recovery</p>
-            <h3 id="deck-crash-recovery-title">Une version locale plus récente existe</h3>
+            <p>Récupération</p>
+            <h3 id="deck-crash-recovery-title">Tu as un travail non récupéré</h3>
+            <span>
+              Une modification plus récente a été trouvée sur cet ordinateur. Le choix le plus
+              sûr est de récupérer ce travail.
+            </span>
           </div>
-          <button type="button" onClick={onKeepCurrent}>
-            Ignorer
+          <button className="deck-button-ghost" type="button" onClick={onKeepCurrent}>
+            Fermer
           </button>
         </header>
 
-        <div className="deck-recovery-summary">
-          <article>
-            <strong>Draft local</strong>
-            <small>
-              {new Date(draft.updatedAtIso).toLocaleString()} - {draft.compilerStatus}
-            </small>
-            <span>{draft.sourceHash.slice(0, 8)}</span>
+        <div className="deck-recovery-body">
+          <article className="deck-recovery-card deck-recovery-card--recommended">
+            <div className="deck-recovery-card-header">
+              <div>
+                <span className="deck-recovery-badge">Recommandé</span>
+                <strong>Récupérer mon travail récent</strong>
+              </div>
+              <span className="deck-recovery-status" data-status={draft.compilerStatus}>
+                {statusLabel(draft.compilerStatus)}
+              </span>
+            </div>
+            <dl className="deck-recovery-meta">
+              <div>
+                <dt>Dernière modification</dt>
+                <dd>{draftUpdatedAt}</dd>
+              </div>
+              <div>
+                <dt>État</dt>
+                <dd>{draft.sourceHash.slice(0, 8)}</dd>
+              </div>
+            </dl>
+            <div className="deck-recovery-primary-actions">
+              <button className="deck-button-primary" type="button" onClick={onRestoreDraft}>
+                Récupérer mon travail
+              </button>
+              <button type="button" onClick={onCompareDraftWithCurrent}>
+                Voir les différences
+              </button>
+            </div>
           </article>
-          <article>
-            <strong>Version courante</strong>
-            <small>
-              {current ? new Date(current.updatedAtIso).toLocaleString() : "Non sauvegardée"}
-            </small>
-            <span>{current ? current.sourceHash.slice(0, 8) : "Aucun hash"}</span>
+
+          <article className="deck-recovery-card">
+            <div className="deck-recovery-card-header">
+              <div>
+                <span className="deck-recovery-badge deck-recovery-badge--neutral">Actuel</span>
+                <strong>Garder la page actuelle</strong>
+              </div>
+              <span className="deck-recovery-status" data-status="current">
+                conservée
+              </span>
+            </div>
+            <dl className="deck-recovery-meta">
+              <div>
+                <dt>Dernière sauvegarde</dt>
+                <dd>{currentUpdatedAt}</dd>
+              </div>
+              <div>
+                <dt>État</dt>
+                <dd>{current ? current.sourceHash.slice(0, 8) : "Aucun hash"}</dd>
+              </div>
+            </dl>
+            <div className="deck-recovery-current-copy">
+              <strong>Ignorer les modifications trouvées</strong>
+              <small>
+                À utiliser seulement si tu sais que les changements récents ne sont pas utiles.
+              </small>
+            </div>
+            <button type="button" onClick={onKeepCurrent}>
+              Garder cette page
+            </button>
           </article>
         </div>
 
-        <div className="deck-modal-actions">
-          <button type="button" onClick={onRestoreDraft}>
-            Restaurer cette version
-          </button>
-          <button type="button" onClick={onPreviewDraft}>
-            Ouvrir en lecture seule
-          </button>
-          <button type="button" onClick={onCompareDraftWithCurrent}>
-            Comparer avec la version actuelle
-          </button>
-          <button type="button" onClick={onCreateCopyFromDraft}>
-            Créer une copie
-          </button>
-          <button type="button" onClick={onKeepCurrent}>
-            Garder la version courante
-          </button>
-          <button type="button" onClick={onDeleteDraft}>
-            Supprimer le draft
-          </button>
-          <button type="button" onClick={onOpenVersionHistory}>
-            Voir l'historique
-          </button>
-        </div>
-
-        {recentVersions.length > 0 ? (
-          <div className="deck-recovery-versions">
-            <strong>Versions récentes</strong>
-            <ul className="deck-version-list">
-              {recentVersions.map((version) => (
-                <li key={version.id}>
-                  <strong>{version.label ?? version.reason}</strong>
-                  <small>
-                    {new Date(version.createdAtIso).toLocaleString()} - {version.compilerStatus}
-                  </small>
-                  <span>{version.sourceHash.slice(0, 8)} - {version.sizeBytes} octets</span>
-                  <div className="deck-version-actions">
-                    <button type="button" onClick={() => onRestoreVersion(version.id)}>
-                      Restaurer cette version
-                    </button>
-                    <button type="button" onClick={() => onPreviewVersion(version.id)}>
-                      Ouvrir
-                    </button>
-                    <button type="button" onClick={() => onCompareVersionWithCurrent(version.id)}>
-                      Comparer
-                    </button>
-                    <button type="button" onClick={() => onCreateCopyFromVersion(version.id)}>
-                      Créer copie
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        <details className="deck-recovery-advanced">
+          <summary>Options avancées</summary>
+          <div className="deck-recovery-secondary-actions">
+            <button type="button" onClick={onPreviewDraft}>
+              Voir le contenu récupéré
+            </button>
+            <button type="button" onClick={onCreateCopyFromDraft}>
+              Créer une copie
+            </button>
+            <button className="deck-button-danger" type="button" onClick={onDeleteDraft}>
+              Supprimer définitivement cette récupération
+            </button>
           </div>
-        ) : null}
+
+          {recentVersions.length > 0 ? (
+            <section className="deck-recovery-versions">
+              <strong>Autres versions locales</strong>
+              <p>Ces versions sont utiles si tu cherches une sauvegarde plus ancienne.</p>
+              <ul className="deck-version-list">
+                {recentVersions.map((version) => (
+                  <li key={version.id}>
+                    <div className="deck-recovery-version-row">
+                      <div>
+                        <strong>{version.label ?? version.reason}</strong>
+                        <small>
+                          {formatDateTime(version.createdAtIso)} - {statusLabel(version.compilerStatus)}
+                        </small>
+                      </div>
+                      <span>{version.sourceHash.slice(0, 8)} - {version.sizeBytes} octets</span>
+                    </div>
+                    <div className="deck-version-actions">
+                      <button type="button" onClick={() => onRestoreVersion(version.id)}>
+                        Récupérer
+                      </button>
+                      <button type="button" onClick={() => onPreviewVersion(version.id)}>
+                        Voir
+                      </button>
+                      <button type="button" onClick={() => onCompareVersionWithCurrent(version.id)}>
+                        Différences
+                      </button>
+                      <button type="button" onClick={() => onCreateCopyFromVersion(version.id)}>
+                        Copier
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </details>
+
+        <footer className="deck-recovery-footer">
+          <button type="button" onClick={onOpenVersionHistory}>
+            Voir tout l’historique
+          </button>
+          <button className="deck-button-ghost" type="button" onClick={onKeepCurrent}>
+            Ne rien récupérer
+          </button>
+        </footer>
       </section>
     </div>
   );
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function statusLabel(status: DeckDraftSnapshot["compilerStatus"]): string {
+  if (status === "valid") {
+    return "utilisable";
+  }
+  if (status === "degraded") {
+    return "avec alertes";
+  }
+  return "avec erreurs";
 }
