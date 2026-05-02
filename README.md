@@ -1,6 +1,6 @@
 # Qastia Deck
 
-`@qastia/deck-runtime` est une librairie React pour intégrer des supports de présentation YAML/Markdown dans une application métier.
+`@bjalon/deck-runtime` est une librairie React pour intégrer des supports de présentation YAML/Markdown dans une application métier.
 
 L'objectif n'est pas de remplacer un outil de slides généraliste, mais de fournir un runtime embarquable pour des decks structurés, éditables, versionnables et rendus de manière cohérente dans un produit Qastia.
 
@@ -57,8 +57,8 @@ Le runtime compile cette source, résout les layouts et thèmes disponibles, pui
 Importer le composant studio et la feuille de style du runtime :
 
 ```tsx
-import { DeckStudio, type DeckSource } from "@qastia/deck-runtime";
-import "@qastia/deck-runtime/styles.css";
+import { DeckStudio, type DeckSource } from "@bjalon/deck-runtime";
+import "@bjalon/deck-runtime/styles.css";
 
 const source: DeckSource = {
   content: `
@@ -91,8 +91,8 @@ import {
   defaultDeckRuntime,
   type CompiledDeck,
   type DeckSource,
-} from "@qastia/deck-runtime";
-import "@qastia/deck-runtime/styles.css";
+} from "@bjalon/deck-runtime";
+import "@bjalon/deck-runtime/styles.css";
 
 export function DeckPreview({ source }: { readonly source: DeckSource }): React.ReactElement {
   const [deck, setDeck] = useState<CompiledDeck | null>(null);
@@ -145,7 +145,7 @@ npm run dev:example
 Le runtime par défaut couvre les layouts, renderers, thèmes et transitions fournis par la librairie. Une application peut créer son propre runtime pour ajouter ou remplacer ces registres.
 
 ```tsx
-import { createDeckRuntime } from "@qastia/deck-runtime";
+import { createDeckRuntime } from "@bjalon/deck-runtime";
 
 const runtime = createDeckRuntime({
   layouts: [...customLayouts],
@@ -184,26 +184,30 @@ Le projet consommateur peut référencer la librairie en dépendance locale pend
 ```json
 {
   "dependencies": {
-    "@qastia/deck-runtime": "file:../qastia-deck"
+    "@bjalon/deck-runtime": "file:../qastia-deck"
   }
 }
 ```
 
 ## Publication GitHub Packages
 
-Le package est publié sous le scope npm `@qastia`.
+Le package est publié sous le scope npm `@bjalon`, car le repository GitHub est `bjalon/qastia-deck`.
 
-Depuis un repository `bjalon/*`, le `GITHUB_TOKEN` du workflow ne peut pas publier sous le namespace `@qastia`. Le job `Publish to GitHub Packages` utilise donc le secret GitHub Actions suivant :
+GitHub Packages npm impose que le scope du package corresponde au propriétaire GitHub autorisé. Le workflow publie donc `@bjalon/deck-runtime` avec `secrets.GITHUB_TOKEN` et la permission Actions `packages: write`.
 
-```txt
-QASTIA_PACKAGES_TOKEN
+Le projet `qastia-coaching` doit pointer vers ce registry :
+
+```ini
+@bjalon:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
 ```
 
-Ce secret doit contenir un Personal Access Token autorisé à publier dans l'organisation ou le namespace GitHub `qastia`, avec au minimum :
+et dépendre du package publié :
 
-```txt
-write:packages
-read:packages
+```json
+{
+  "dependencies": {
+    "@bjalon/deck-runtime": "^1.0.0"
+  }
+}
 ```
-
-Si le repository est transféré sous l'organisation `qastia`, le workflow pourra être simplifié pour réutiliser `secrets.GITHUB_TOKEN`.

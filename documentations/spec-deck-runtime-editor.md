@@ -282,10 +282,10 @@ Les sous-modules internes ne doivent pas être importés directement par l’app
 À terme, les entrypoints publics doivent permettre de ne charger que la couche utile :
 
 ```ts
-import { DeckShow } from "@qastia/deck-runtime/viewer";
-import { DeckStudio } from "@qastia/deck-runtime/editor";
-import { DeckPresentationOverlay } from "@qastia/deck-runtime/presentation";
-import { IntegratedDeckWorkspace } from "@qastia/deck-runtime/workspace";
+import { DeckShow } from "@bjalon/deck-runtime/viewer";
+import { DeckStudio } from "@bjalon/deck-runtime/editor";
+import { DeckPresentationOverlay } from "@bjalon/deck-runtime/presentation";
+import { IntegratedDeckWorkspace } from "@bjalon/deck-runtime/workspace";
 ```
 
 Une page de preview seule ne doit pas embarquer inutilement l’éditeur, l’historique ou des renderers spécialisés non utilisés.

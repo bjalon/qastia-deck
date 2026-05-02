@@ -76,26 +76,31 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
     permissions:
       contents: read
+      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check package token
+      - name: Validate package scope
+        shell: bash
         run: |
-          if [ -z "${QASTIA_PACKAGES_TOKEN}" ]; then
-            echo "::error::Missing QASTIA_PACKAGES_TOKEN. Create a GitHub Actions secret containing a PAT allowed to publish packages under the qastia namespace."
+          set -euo pipefail
+
+          PACKAGE_SCOPE="$(node -p "require('./package.json').name.match(/^@([^/]+)\//)?.[1] ?? ''")"
+          if [ "${PACKAGE_SCOPE}" != "${GITHUB_REPOSITORY_OWNER}" ]; then
+            echo "::error::GitHub Packages npm requires the package scope to match the repository owner when publishing with GITHUB_TOKEN. Current package scope: @${PACKAGE_SCOPE}; repository owner: ${GITHUB_REPOSITORY_OWNER}."
             exit 1
           fi
-        env:
-          QASTIA_PACKAGES_TOKEN: ${{ secrets.QASTIA_PACKAGES_TOKEN }}
+
+          echo "Package scope @${PACKAGE_SCOPE} matches repository owner ${GITHUB_REPOSITORY_OWNER}."
 
       - name: Setup Node for GitHub Packages
         uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://npm.pkg.github.com
-          scope: "@qastia"
+          scope: "@bjalon"
           cache: npm
 
       - name: Install dependencies
@@ -107,7 +112,7 @@ jobs:
       - name: Publish package
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.QASTIA_PACKAGES_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-example-page:
     name: Deploy Integrated Example

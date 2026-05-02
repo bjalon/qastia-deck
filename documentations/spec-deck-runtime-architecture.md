@@ -2,7 +2,7 @@
 
 Ce document complète `spec-deck-runtime-editor.md`.
 
-La spec historique décrit la cible fonctionnelle initiale. Ce document fixe les règles d'architecture applicables au code courant et aux prochaines évolutions de `@qastia/deck-runtime`.
+La spec historique décrit la cible fonctionnelle initiale. Ce document fixe les règles d'architecture applicables au code courant et aux prochaines évolutions de `@bjalon/deck-runtime`.
 
 ## 1. Objectif
 
@@ -365,18 +365,18 @@ Le print est un target de rendu, pas un moteur parallele.
 L'API racine reste disponible :
 
 ```ts
-import { DeckShow, DeckStudio } from "@qastia/deck-runtime";
+import { DeckShow, DeckStudio } from "@bjalon/deck-runtime";
 ```
 
 Des entrypoints legers existent aussi :
 
 ```ts
-import { DeckShow } from "@qastia/deck-runtime/viewer";
-import { DeckStudio } from "@qastia/deck-runtime/studio";
-import { DeckPresentationOverlay } from "@qastia/deck-runtime/presentation";
-import { compileDeck } from "@qastia/deck-runtime/compiler";
-import { createDeckRuntime } from "@qastia/deck-runtime/runtime";
-import { PrintDeck } from "@qastia/deck-runtime/pdf";
+import { DeckShow } from "@bjalon/deck-runtime/viewer";
+import { DeckStudio } from "@bjalon/deck-runtime/studio";
+import { DeckPresentationOverlay } from "@bjalon/deck-runtime/presentation";
+import { compileDeck } from "@bjalon/deck-runtime/compiler";
+import { createDeckRuntime } from "@bjalon/deck-runtime/runtime";
+import { PrintDeck } from "@bjalon/deck-runtime/pdf";
 ```
 
 Objectif :
