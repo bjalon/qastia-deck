@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import YAML from "yaml";
 import {
   DeckPresentationOverlay,
   DeckShow,
@@ -81,6 +82,10 @@ slides:
 `,
 };
 
+const slideThemeOptions = Array.from(defaultDeckRuntime.themes.values()).filter(
+  (theme) => theme.id !== "default",
+);
+
 function IntegratedExample(): React.ReactElement {
   const [source, setSource] = useState<DeckSource>(initialSource);
   const [compileResult, setCompileResult] = useState<CompileDeckResult | null>(null);
@@ -100,6 +105,7 @@ function IntegratedExample(): React.ReactElement {
   }, [compileResult]);
 
   const canPresent = compileResult?.status === "valid" && renderedDeck !== undefined;
+  const activeThemeId = readThemeId(source);
 
   useEffect(() => {
     if (!canPresent) {
@@ -131,6 +137,22 @@ function IntegratedExample(): React.ReactElement {
             >
               Presentation
             </button>
+            <label className="workspace-select">
+              <span>Style des slides</span>
+              <select
+                value={activeThemeId}
+                onChange={(event) => {
+                  const nextThemeId = event.currentTarget.value;
+                  setSource((currentSource) => updateDeckTheme(currentSource, nextThemeId));
+                }}
+              >
+                {slideThemeOptions.map((theme) => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="workspace-select">
               <span>Presentation controls</span>
               <select
@@ -230,4 +252,70 @@ function IntegratedExample(): React.ReactElement {
   );
 }
 
-createRoot(document.getElementById("root") as HTMLElement).render(<IntegratedExample />);
+createRoot(document.getElementById("root") as HTMLElement).render(
+  <ExampleErrorBoundary>
+    <IntegratedExample />
+  </ExampleErrorBoundary>,
+);
+
+class ExampleErrorBoundary extends Component<
+  { readonly children: ReactNode },
+  { readonly error: Error | null }
+> {
+  state: { readonly error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error): { readonly error: Error } {
+    return { error };
+  }
+
+  render(): ReactNode {
+    if (this.state.error) {
+      return (
+        <main className="integrated-shell">
+          <section className="example-error-boundary" role="alert">
+            <p>Erreur dans l’exemple intégré.</p>
+            <pre>{this.state.error.message}</pre>
+          </section>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function readThemeId(source: DeckSource): string {
+  const deck = parseDeckSource(source);
+  const theme = isRecord(deck?.theme) ? deck.theme : undefined;
+  return typeof theme?.id === "string" ? theme.id : "fintech-light";
+}
+
+function updateDeckTheme(source: DeckSource, themeId: string): DeckSource {
+  const deck = parseDeckSource(source);
+  if (!deck) {
+    return source;
+  }
+
+  deck.theme = {
+    ...(isRecord(deck.theme) ? deck.theme : {}),
+    id: themeId,
+  };
+
+  return {
+    ...source,
+    content: YAML.stringify(deck, { lineWidth: 0 }),
+  };
+}
+
+function parseDeckSource(source: DeckSource): Record<string, unknown> | null {
+  try {
+    const parsed = YAML.parse(source.content);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

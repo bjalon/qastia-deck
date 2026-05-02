@@ -5,8 +5,8 @@
   font-family: var(--deck-font-body, Inter, system-ui, sans-serif);
 }
 
-.deck-theme-default,
-.deck-theme-fintech-light {
+.deck-theme-default .deck-slide-frame,
+.deck-theme-fintech-light .deck-slide-frame {
   --deck-color-background: #ffffff;
   --deck-color-foreground: #111827;
   --deck-color-primary: #155eef;
@@ -20,7 +20,63 @@
   --deck-gap: 2rem;
 }
 
-.deck-theme-fintech-dark {
+.deck-theme-qastia-coaching .deck-slide-frame {
+  --deck-color-background: #fbf9f6;
+  --deck-color-foreground: #171717;
+  --deck-color-primary: #9c7a4d;
+  --deck-color-muted: #7f7467;
+  --deck-color-danger: #9d4037;
+  --deck-color-warning: #a66f2b;
+  --deck-font-heading: Fraunces, Georgia, serif;
+  --deck-font-body: Manrope, Inter, system-ui, sans-serif;
+  --deck-font-mono: JetBrains Mono, ui-monospace, monospace;
+  --deck-slide-padding: 4.2rem;
+  --deck-gap: 2rem;
+}
+
+.deck-theme-editorial-indigo .deck-slide-frame {
+  --deck-color-background: #f7f5ff;
+  --deck-color-foreground: #17122f;
+  --deck-color-primary: #5b45d6;
+  --deck-color-muted: #6f6a86;
+  --deck-color-danger: #b42318;
+  --deck-color-warning: #b54708;
+  --deck-font-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+  --deck-font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+  --deck-font-mono: JetBrains Mono, ui-monospace, monospace;
+  --deck-slide-padding: 4rem;
+  --deck-gap: 2rem;
+}
+
+.deck-theme-sage-coral .deck-slide-frame {
+  --deck-color-background: #f7fbf8;
+  --deck-color-foreground: #13251d;
+  --deck-color-primary: #d75f45;
+  --deck-color-muted: #5d7468;
+  --deck-color-danger: #b42318;
+  --deck-color-warning: #a15c07;
+  --deck-font-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+  --deck-font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+  --deck-font-mono: JetBrains Mono, ui-monospace, monospace;
+  --deck-slide-padding: 4rem;
+  --deck-gap: 2rem;
+}
+
+.deck-theme-midnight-gold .deck-slide-frame {
+  --deck-color-background: #101624;
+  --deck-color-foreground: #f8f4e9;
+  --deck-color-primary: #d6a84f;
+  --deck-color-muted: #b7c0ce;
+  --deck-color-danger: #ff8a7a;
+  --deck-color-warning: #f4bf64;
+  --deck-font-heading: Inter, ui-sans-serif, system-ui, sans-serif;
+  --deck-font-body: Inter, ui-sans-serif, system-ui, sans-serif;
+  --deck-font-mono: JetBrains Mono, ui-monospace, monospace;
+  --deck-slide-padding: 4rem;
+  --deck-gap: 2rem;
+}
+
+.deck-theme-fintech-dark .deck-slide-frame {
   --deck-color-background: #0f172a;
   --deck-color-foreground: #f8fafc;
   --deck-color-primary: #60a5fa;
@@ -40,7 +96,16 @@
   border: 1px solid rgba(17, 24, 39, 0.12);
   color: var(--deck-color-foreground, #111827);
   overflow: hidden;
+  position: relative;
   width: 100%;
+}
+
+.deck-slide-frame::before {
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
 }
 
 .deck-layout {
@@ -50,6 +115,8 @@
   gap: var(--deck-gap, 2rem);
   height: 100%;
   padding: var(--deck-slide-padding, 4rem);
+  position: relative;
+  z-index: 1;
 }
 
 .deck-layout h1,
@@ -128,6 +195,85 @@
 
 .deck-markdown > :last-child {
   margin-bottom: 0;
+}
+
+.deck-theme-qastia-coaching .deck-slide-frame {
+  border-color: rgba(156, 122, 77, 0.28);
+}
+
+.deck-theme-qastia-coaching .deck-slide-frame::before {
+  background:
+    radial-gradient(circle at 8% 10%, rgba(156, 122, 77, 0.13), transparent 24%),
+    radial-gradient(circle at 90% 82%, rgba(66, 93, 103, 0.1), transparent 22%),
+    linear-gradient(180deg, #fbf8f3 0%, #f6f2ec 100%);
+}
+
+.deck-theme-qastia-coaching .deck-cover-eyebrow,
+.deck-theme-qastia-coaching .deck-title-slot {
+  color: #755933;
+}
+
+.deck-theme-qastia-coaching .deck-layout h3 {
+  color: #755933;
+  font-family: var(--deck-font-body, Inter, system-ui, sans-serif);
+  text-transform: none;
+}
+
+.deck-theme-editorial-indigo .deck-slide-frame {
+  border-color: rgba(91, 69, 214, 0.22);
+}
+
+.deck-theme-editorial-indigo .deck-slide-frame::before {
+  background:
+    linear-gradient(90deg, rgba(91, 69, 214, 0.12) 0 0.9rem, transparent 0.9rem),
+    radial-gradient(circle at 82% 18%, rgba(255, 181, 71, 0.18), transparent 20%),
+    linear-gradient(135deg, #fbfaff 0%, #f0edff 100%);
+}
+
+.deck-theme-editorial-indigo .deck-cover-eyebrow,
+.deck-theme-editorial-indigo .deck-title-slot {
+  color: #352494;
+}
+
+.deck-theme-sage-coral .deck-slide-frame {
+  border-color: rgba(33, 98, 76, 0.18);
+}
+
+.deck-theme-sage-coral .deck-slide-frame::before {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(45, 108, 77, 0.12), transparent 20%),
+    radial-gradient(circle at 88% 22%, rgba(215, 95, 69, 0.14), transparent 18%),
+    linear-gradient(180deg, #fbfffc 0%, #eef7f1 100%);
+}
+
+.deck-theme-sage-coral .deck-cover-eyebrow,
+.deck-theme-sage-coral .deck-title-slot {
+  color: #244f3d;
+}
+
+.deck-theme-sage-coral .deck-layout h3 {
+  color: #b94f3b;
+}
+
+.deck-theme-midnight-gold .deck-slide-frame {
+  border-color: rgba(214, 168, 79, 0.28);
+}
+
+.deck-theme-midnight-gold .deck-slide-frame::before {
+  background:
+    radial-gradient(circle at 78% 12%, rgba(214, 168, 79, 0.16), transparent 22%),
+    linear-gradient(135deg, #101624 0%, #172033 58%, #201d17 100%);
+}
+
+.deck-theme-midnight-gold .deck-cover-eyebrow,
+.deck-theme-midnight-gold .deck-title-slot {
+  color: #f2cc78;
+}
+
+.deck-theme-midnight-gold .deck-code-block,
+.deck-theme-midnight-gold .deck-mermaid-block,
+.deck-theme-midnight-gold .deck-unsupported-renderer {
+  background: rgba(248, 244, 233, 0.1);
 }
 
 .deck-layout-cover {

@@ -19,6 +19,30 @@ textarea {
   min-height: 100vh;
 }
 
+.example-error-boundary {
+  background: #fff7f5;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  color: #7a271a;
+  margin: 1rem auto;
+  max-width: 960px;
+  padding: 1rem;
+}
+
+.example-error-boundary p {
+  font-weight: 800;
+  margin: 0 0 0.75rem;
+}
+
+.example-error-boundary pre {
+  background: #ffffff;
+  border: 1px solid #fecdca;
+  border-radius: 6px;
+  margin: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
 .workspace-band {
   box-sizing: border-box;
   display: grid;

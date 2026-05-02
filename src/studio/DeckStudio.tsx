@@ -388,6 +388,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
 
   const diagnostics = compileResult?.diagnostics ?? [];
   const effectiveViewMode = viewMode === "source" && !features.allowRawSourceEdit ? "form" : viewMode;
+  const previewThemeClassName = compiledDeck?.theme.cssClassName ?? "";
 
   return (
     <div
@@ -482,7 +483,10 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             readOnly={readOnly}
           />
         ) : effectiveViewMode === "preview" && selectedSlide ? (
-          <section className="deck-studio-preview deck-studio-preview-main" aria-label="Slide preview">
+          <section
+            className={`deck-studio-preview deck-studio-preview-main ${previewThemeClassName}`}
+            aria-label="Slide preview"
+          >
             <SlideRenderer slide={selectedSlide} target="screen" />
           </section>
         ) : selectedSlide ? (
@@ -521,7 +525,10 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
         ) : null}
 
         {layoutOptions.showActiveSlidePreview && effectiveViewMode !== "preview" && selectedSlide ? (
-          <section className="deck-studio-preview" aria-label="Active slide preview">
+          <section
+            className={`deck-studio-preview ${previewThemeClassName}`}
+            aria-label="Active slide preview"
+          >
             <SlideRenderer slide={selectedSlide} target="screen" />
           </section>
         ) : null}

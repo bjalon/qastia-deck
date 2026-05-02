@@ -34,6 +34,35 @@ describe("compileDeck", () => {
     expect(result.deck.slides).toHaveLength(1);
   });
 
+  it("exposes the slide-only style presets through the default runtime", async () => {
+    const expectedThemeIds = [
+      "fintech-light",
+      "qastia-coaching",
+      "editorial-indigo",
+      "sage-coral",
+      "midnight-gold",
+    ];
+
+    for (const themeId of expectedThemeIds) {
+      expect(defaultDeckRuntime.themes.has(themeId)).toBe(true);
+    }
+
+    const result = await compileDeck(
+      { content: validSource.content.replace("id: fintech-light", "id: qastia-coaching") },
+      {
+        runtime: defaultDeckRuntime,
+        mode: "editor",
+        locale: "fr-FR",
+      },
+    );
+
+    expect(result.status).toBe("valid");
+    if (result.status !== "valid") {
+      throw new Error("Expected valid deck.");
+    }
+    expect(result.deck.theme.cssClassName).toBe("deck-theme-qastia-coaching");
+  });
+
   it("returns invalid diagnostics for unknown layouts", async () => {
     const result = await compileDeck(
       {

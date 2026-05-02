@@ -2359,7 +2359,7 @@ export type ThemeTokens = {
 ### 24.3. CSS variables
 
 ```css
-.deck-theme-fintech-light {
+.deck-theme-fintech-light .deck-slide-frame {
   --deck-color-background: #ffffff;
   --deck-color-foreground: #101828;
   --deck-color-primary: #155eef;
@@ -2374,6 +2374,33 @@ export type ThemeTokens = {
   --deck-slide-padding: 4rem;
   --deck-gap: 2rem;
 }
+```
+
+Les variables de thème doivent être appliquées au cadre de slide, pas au workspace ni aux contrôles du viewer. Un changement de preset de style ne doit impacter que :
+
+- `DeckViewport` / `SlideRenderer` ;
+- `DeckPresentationOverlay` uniquement pour les slides affichées ;
+- `PrintDeck` uniquement pour les pages de slides.
+
+Il ne doit pas modifier :
+
+- la top bar ;
+- les boutons previous / next / presentation ;
+- les panneaux d’édition ;
+- les diagnostics ;
+- les contrôles de l’application hôte.
+
+### 24.4. Presets fournis
+
+Le runtime par défaut expose au minimum :
+
+```txt
+fintech-light       -> standard actuel
+qastia-coaching     -> style aligné avec qastia-coaching
+editorial-indigo    -> éditorial sobre avec accent indigo
+sage-coral          -> clair, végétal, accent corail
+midnight-gold       -> sombre premium, accent doré
+fintech-dark        -> variante sombre technique
 ```
 
 ---

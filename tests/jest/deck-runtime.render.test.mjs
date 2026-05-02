@@ -316,7 +316,7 @@ describe("deck-runtime public rendering", () => {
     expect(screen.getByDisplayValue(/version: 1/)).toBeInTheDocument();
 
     fireEvent.change(viewSelect, { target: { value: "preview" } });
-    expect(screen.getByRole("region", { name: "Slide preview" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Slide preview" })).toHaveClass("deck-theme-fintech-light");
     expect(screen.getByText("Stable title")).toBeInTheDocument();
   });
 

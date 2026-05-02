@@ -1,26 +1,26 @@
-import { jsxs as p, jsx as a } from "react/jsx-runtime";
-import _e, { parseDocument as ze } from "yaml";
+import { jsxs as p, jsx as i } from "react/jsx-runtime";
+import _e, { parseDocument as Ye } from "yaml";
 import { z as h } from "zod";
-import { useState as Y, useMemo as se, useCallback as $, useRef as te, useEffect as U } from "react";
-import Ye from "react-markdown";
-function Ge({ fallback: e }) {
+import { useState as G, useMemo as le, useCallback as _, useRef as ne, useEffect as U } from "react";
+import Ge from "react-markdown";
+function Je({ fallback: e }) {
   return /* @__PURE__ */ p("section", { className: "deck-debug-fallback", children: [
-    /* @__PURE__ */ a("header", { children: /* @__PURE__ */ a("h2", { children: e.title }) }),
-    /* @__PURE__ */ a($e, { diagnostics: e.diagnostics }),
-    /* @__PURE__ */ a("pre", { children: e.source.content })
+    /* @__PURE__ */ i("header", { children: /* @__PURE__ */ i("h2", { children: e.title }) }),
+    /* @__PURE__ */ i(He, { diagnostics: e.diagnostics }),
+    /* @__PURE__ */ i("pre", { children: e.source.content })
   ] });
 }
-function $e({
+function He({
   diagnostics: e
 }) {
-  return e.length === 0 ? /* @__PURE__ */ a("div", { className: "deck-diagnostics-empty", role: "status", children: "Aucun diagnostic." }) : /* @__PURE__ */ a("ul", { className: "deck-diagnostics-list", children: e.map((t, n) => /* @__PURE__ */ p("li", { "data-severity": t.severity, children: [
-    /* @__PURE__ */ a("strong", { children: t.code }),
-    /* @__PURE__ */ a("span", { children: t.message }),
-    t.hint ? /* @__PURE__ */ a("small", { children: t.hint }) : null
+  return e.length === 0 ? /* @__PURE__ */ i("div", { className: "deck-diagnostics-empty", role: "status", children: "Aucun diagnostic." }) : /* @__PURE__ */ i("ul", { className: "deck-diagnostics-list", children: e.map((t, n) => /* @__PURE__ */ p("li", { "data-severity": t.severity, children: [
+    /* @__PURE__ */ i("strong", { children: t.code }),
+    /* @__PURE__ */ i("span", { children: t.message }),
+    t.hint ? /* @__PURE__ */ i("small", { children: t.hint }) : null
   ] }, `${t.code}-${n}`)) });
 }
-const Je = /```(\w+)?\n([\s\S]*?)```/g, Xe = /<([a-z][a-z0-9-]*)(\s|>|\/>)/i;
-function Qe(e, t) {
+const Qe = /```(\w+)?\n([\s\S]*?)```/g, Xe = /<([a-z][a-z0-9-]*)(\s|>|\/>)/i;
+function Ze(e, t) {
   const n = [];
   Xe.test(e) && n.push({
     code: "MARKDOWN_UNSUPPORTED_HTML",
@@ -29,30 +29,30 @@ function Qe(e, t) {
     path: t,
     hint: "Use Markdown syntax or a custom renderer instead."
   });
-  const i = [];
+  const a = [];
   let r = 0;
-  for (const l of e.matchAll(Je)) {
+  for (const l of e.matchAll(Qe)) {
     const [d, w, N] = l, f = l.index ?? 0, g = e.slice(r, f);
-    g.trim().length > 0 && i.push({ kind: "markdown", markdown: g }), (w == null ? void 0 : w.toLowerCase()) === "mermaid" ? i.push({ kind: "mermaid", chart: N.trim() }) : i.push({ kind: "code", language: w, code: N.replace(/\n$/, "") }), r = f + d.length;
+    g.trim().length > 0 && a.push({ kind: "markdown", markdown: g }), (w == null ? void 0 : w.toLowerCase()) === "mermaid" ? a.push({ kind: "mermaid", chart: N.trim() }) : a.push({ kind: "code", language: w, code: N.replace(/\n$/, "") }), r = f + d.length;
   }
   const o = e.slice(r);
-  return (o.trim().length > 0 || i.length === 0) && i.push({ kind: "markdown", markdown: o }), { nodes: i, diagnostics: n };
+  return (o.trim().length > 0 || a.length === 0) && a.push({ kind: "markdown", markdown: o }), { nodes: a, diagnostics: n };
 }
-function H(e, t, n, i, r, o) {
+function H(e, t, n, a, r, o) {
   return {
     code: e,
     severity: t,
     message: n,
-    path: i,
+    path: a,
     slideId: r,
     hint: o
   };
 }
-function Ze(e) {
+function qe(e) {
   const t = /* @__PURE__ */ new Map();
   for (const n of e) {
-    const i = `${n.code}:${n.severity}`, r = t.get(i);
-    t.set(i, {
+    const a = `${n.code}:${n.severity}`, r = t.get(a);
+    t.set(a, {
       code: n.code,
       severity: n.severity,
       message: String(r ? Number(r.message) + 1 : 1)
@@ -64,24 +64,24 @@ function Ze(e) {
     count: Number(n.message)
   }));
 }
-const Re = h.object({
+const Le = h.object({
   in: h.string().default("none"),
   out: h.string().default("none"),
   durationMs: h.number().int().nonnegative().default(0)
-}).strict(), qe = h.object({
-  markdown: h.string()
 }).strict(), et = h.object({
+  markdown: h.string()
+}).strict(), tt = h.object({
   image: h.object({
     assetId: h.string().optional(),
     src: h.string().optional(),
     alt: h.string().optional()
   }).strict()
-}).strict(), tt = h.object({
+}).strict(), nt = h.object({
   renderer: h.object({
     kind: h.string(),
     props: h.record(h.unknown()).default({})
   }).strict()
-}).strict(), nt = h.union([qe, et, tt]), it = h.object({
+}).strict(), at = h.union([et, tt, nt]), it = h.object({
   version: h.literal(1),
   kind: h.literal("deck"),
   metadata: h.object({
@@ -95,7 +95,7 @@ const Re = h.object({
   }).strict().default({ id: "default" }),
   defaults: h.object({
     aspectRatio: h.union([h.literal("16:9"), h.literal("4:3")]).default("16:9"),
-    transition: Re.default({ in: "none", out: "none", durationMs: 0 })
+    transition: Le.default({ in: "none", out: "none", durationMs: 0 })
   }).strict().default({ aspectRatio: "16:9", transition: { in: "none", out: "none", durationMs: 0 } }),
   assets: h.record(
     h.object({
@@ -108,46 +108,46 @@ const Re = h.object({
     h.object({
       id: h.string().min(1),
       layout: h.string().min(1),
-      slots: h.record(nt).default({}),
-      transition: Re.optional()
+      slots: h.record(at).default({}),
+      transition: Le.optional()
     }).strict()
   ).min(1)
 }).strict();
-async function at(e, t) {
+async function rt(e, t) {
   const n = [];
-  let i;
+  let a;
   try {
-    const b = ze(e.content, {
+    const v = Ye(e.content, {
       prettyErrors: !1,
       strict: !0,
       uniqueKeys: !0
     });
-    for (const S of b.errors)
+    for (const S of v.errors)
       n.push(
         H("YAML_SYNTAX_ERROR", "error", S.message, void 0, void 0)
       );
-    for (const S of b.warnings)
+    for (const S of v.warnings)
       n.push(
         H("YAML_PARSE_WARNING", "warning", S.message, void 0, void 0)
       );
-    if (b.errors.length > 0)
-      return ue(e, n);
-    i = b.toJSON();
-  } catch (b) {
+    if (v.errors.length > 0)
+      return me(e, n);
+    a = v.toJSON();
+  } catch (v) {
     return n.push(
       H(
         "YAML_SYNTAX_ERROR",
         "error",
-        b instanceof Error ? b.message : "Unable to parse YAML source."
+        v instanceof Error ? v.message : "Unable to parse YAML source."
       )
-    ), ue(e, n);
+    ), me(e, n);
   }
-  const r = it.safeParse(i);
+  const r = it.safeParse(a);
   if (!r.success)
-    return n.push(...rt(r.error)), ue(e, n);
-  const o = r.data, l = ot(o, t, n);
-  if (n.push(...l), l.some((b) => b.code === "SLIDE_UNKNOWN_LAYOUT"))
-    return ue(e, n);
+    return n.push(...ot(r.error)), me(e, n);
+  const o = r.data, l = st(o, t, n);
+  if (n.push(...l), l.some((v) => v.code === "SLIDE_UNKNOWN_LAYOUT"))
+    return me(e, n);
   const w = new Map(Object.entries(o.assets)), N = t.runtime.themes.get(o.theme.id) ?? t.runtime.themes.get("default");
   if (!N)
     throw new Error("Deck runtime must provide at least one theme.");
@@ -160,15 +160,15 @@ async function at(e, t) {
     )
   );
   const f = [];
-  for (const [b, S] of o.slides.entries()) {
+  for (const [v, S] of o.slides.entries()) {
     const c = t.runtime.layouts.get(S.layout);
     if (!c)
       continue;
     const D = /* @__PURE__ */ new Map();
-    for (const [u, M] of Object.entries(S.slots)) {
-      const R = await st(u, M, w, [
+    for (const [u, C] of Object.entries(S.slots)) {
+      const R = await lt(u, C, w, [
         "slides",
-        String(b),
+        String(v),
         "slots",
         u
       ]);
@@ -180,18 +180,18 @@ async function at(e, t) {
       );
     }
     for (const u of c.requiredSlots)
-      D.has(u) || D.set(u, dt(u));
+      D.has(u) || D.set(u, ct(u));
     f.push({
       id: S.id,
-      index: b,
+      index: v,
       layout: {
         name: c.name,
         definition: c
       },
-      transition: ct(
+      transition: ut(
         S.transition ?? o.defaults.transition,
         t,
-        ["slides", String(b), "transition"],
+        ["slides", String(v), "transition"],
         n
       ),
       slots: D,
@@ -216,7 +216,7 @@ async function at(e, t) {
     diagnostics: []
   };
 }
-function ue(e, t) {
+function me(e, t) {
   return {
     status: "invalid",
     fallback: {
@@ -227,11 +227,11 @@ function ue(e, t) {
     diagnostics: t
   };
 }
-function rt(e) {
+function ot(e) {
   return e.issues.map((t) => {
-    const n = t.path.map(String), i = t.code === "unrecognized_keys" ? "SCHEMA_UNKNOWN_FIELD" : "SCHEMA_INVALID_VALUE";
+    const n = t.path.map(String), a = t.code === "unrecognized_keys" ? "SCHEMA_UNKNOWN_FIELD" : "SCHEMA_INVALID_VALUE";
     return H(
-      i,
+      a,
       "error",
       t.message,
       n.length > 0 ? n : void 0,
@@ -239,11 +239,11 @@ function rt(e) {
     );
   });
 }
-function ot(e, t, n) {
-  const i = [], r = /* @__PURE__ */ new Set();
-  e.slides.length === 0 && i.push(H("DECK_EMPTY_SLIDES", "error", "Deck must contain at least one slide.", ["slides"]));
+function st(e, t, n) {
+  const a = [], r = /* @__PURE__ */ new Set();
+  e.slides.length === 0 && a.push(H("DECK_EMPTY_SLIDES", "error", "Deck must contain at least one slide.", ["slides"]));
   for (const [o, l] of e.slides.entries()) {
-    r.has(l.id) && i.push(
+    r.has(l.id) && a.push(
       H(
         "SLIDE_DUPLICATE_ID",
         "error",
@@ -254,7 +254,7 @@ function ot(e, t, n) {
     ), r.add(l.id);
     const d = t.runtime.layouts.get(l.layout);
     if (!d) {
-      i.push(
+      a.push(
         H(
           "SLIDE_UNKNOWN_LAYOUT",
           "error",
@@ -267,7 +267,7 @@ function ot(e, t, n) {
       continue;
     }
     for (const w of d.requiredSlots)
-      w in l.slots || i.push(
+      w in l.slots || a.push(
         H(
           "LAYOUT_MISSING_SLOT",
           "error",
@@ -277,7 +277,7 @@ function ot(e, t, n) {
         )
       );
     for (const w of Object.keys(l.slots))
-      d.forbiddenSlots.includes(w) && i.push(
+      d.forbiddenSlots.includes(w) && a.push(
         H(
           "LAYOUT_FORBIDDEN_SLOT",
           "warning",
@@ -287,10 +287,10 @@ function ot(e, t, n) {
         )
       );
   }
-  return n.length > 0, i;
+  return n.length > 0, a;
 }
-async function st(e, t, n, i) {
-  const r = [], o = await lt(t, n, i, r);
+async function lt(e, t, n, a) {
+  const r = [], o = await dt(t, n, a, r);
   return {
     name: e,
     kind: o.kind === "renderer" ? "renderer" : o.kind,
@@ -298,17 +298,17 @@ async function st(e, t, n, i) {
     diagnostics: r
   };
 }
-async function lt(e, t, n, i) {
+async function dt(e, t, n, a) {
   if ("markdown" in e) {
-    const r = Qe(e.markdown, n);
-    return i.push(...r.diagnostics), {
+    const r = Ze(e.markdown, n);
+    return a.push(...r.diagnostics), {
       kind: "markdown",
       markdown: e.markdown,
       nodes: r.nodes
     };
   }
   if ("image" in e) {
-    e.image.assetId && !t.has(e.image.assetId) && i.push(
+    e.image.assetId && !t.has(e.image.assetId) && a.push(
       H(
         "ASSET_NOT_FOUND",
         "error",
@@ -330,7 +330,7 @@ async function lt(e, t, n, i) {
     props: e.renderer.props
   };
 }
-function dt(e) {
+function ct(e) {
   return {
     name: e,
     kind: "markdown",
@@ -342,11 +342,11 @@ function dt(e) {
     diagnostics: []
   };
 }
-function ct(e, t, n, i) {
+function ut(e, t, n, a) {
   const r = t.runtime.transitions.has(e.in) ? e.in : "none", o = t.runtime.transitions.has(e.out) ? e.out : "none";
-  return r !== e.in && i.push(
+  return r !== e.in && a.push(
     H("SCHEMA_INVALID_VALUE", "warning", `Unknown transition '${e.in}'.`, [...n, "in"])
-  ), o !== e.out && i.push(
+  ), o !== e.out && a.push(
     H("SCHEMA_INVALID_VALUE", "warning", `Unknown transition '${e.out}'.`, [...n, "out"])
   ), {
     in: r,
@@ -354,54 +354,54 @@ function ct(e, t, n, i) {
     durationMs: e.durationMs
   };
 }
-function he({ slide: e, target: t }) {
+function ge({ slide: e, target: t }) {
   const n = e.layout.definition.component;
-  return /* @__PURE__ */ a(
+  return /* @__PURE__ */ i(
     "section",
     {
       className: "deck-slide-frame",
       "data-slide-id": e.id,
       "data-layout": e.layout.name,
       "data-target": t,
-      children: /* @__PURE__ */ a(n, { slide: e, target: t })
+      children: /* @__PURE__ */ i(n, { slide: e, target: t })
     }
   );
 }
-function He({
+function Fe({
   activeIndex: e,
   deck: t,
   target: n = "screen"
 }) {
-  const i = t.slides[e] ?? t.slides[0];
-  return i ? /* @__PURE__ */ a(he, { slide: i, target: n }) : null;
+  const a = t.slides[e] ?? t.slides[0];
+  return a ? /* @__PURE__ */ i(ge, { slide: a, target: n }) : null;
 }
-function Le(e, t) {
+function Ee(e, t) {
   if (!t)
     return 0;
-  const n = e.slides.findIndex((i) => i.id === t);
+  const n = e.slides.findIndex((a) => a.id === t);
   return n === -1 ? 0 : n;
 }
-function Fe({
+function Be({
   deck: e,
   defaultSelectedSlideId: t,
   initialSlideId: n,
-  onAction: i,
+  onAction: a,
   onSlideChange: r,
   selectedSlideId: o
 }) {
-  const l = Le(e, t ?? n), d = o ? e.slides.findIndex((u) => u.id === o) : -1, [w, N] = Y(l), f = d >= 0 ? d : w, g = e.slides[f] ?? e.slides[0], b = se(
+  const l = Ee(e, t ?? n), d = o ? e.slides.findIndex((u) => u.id === o) : -1, [w, N] = G(l), f = d >= 0 ? d : w, g = e.slides[f] ?? e.slides[0], v = le(
     () => ({
       activeSlideId: (g == null ? void 0 : g.id) ?? "",
       activeSlideIndex: f
     }),
     [f, g == null ? void 0 : g.id]
-  ), S = $(
+  ), S = _(
     (u) => {
-      i == null || i(u, b);
+      a == null || a(u, v);
     },
-    [i, b]
-  ), c = $(
-    (u, M) => {
+    [a, v]
+  ), c = _(
+    (u, C) => {
       const R = Math.min(Math.max(u, 0), e.slides.length - 1), L = g == null ? void 0 : g.id;
       d < 0 && N(R);
       const E = e.slides[R];
@@ -411,15 +411,15 @@ function Fe({
         activeSlideIndex: R
       })), S({
         type: R > f ? "next-slide" : "previous-slide",
-        origin: M,
+        origin: C,
         slideId: E == null ? void 0 : E.id,
         createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
       });
     },
     [f, g == null ? void 0 : g.id, d, e.slides, S, r]
-  ), D = $(
+  ), D = _(
     (u) => {
-      d >= 0 || N(Le(e, u));
+      d >= 0 || N(Ee(e, u));
     },
     [d, e]
   );
@@ -429,24 +429,24 @@ function Fe({
     emitAction: S,
     goTo: c,
     resetToSlideId: D,
-    state: b
+    state: v
   };
 }
-function ut({
+function mt({
   activeIndex: e,
   onClose: t,
   onNext: n,
-  onPrevious: i,
+  onPrevious: a,
   slideCount: r
 }) {
   return /* @__PURE__ */ p("div", { className: "deck-presentation-controls", "aria-label": "Navigation presentation", children: [
-    /* @__PURE__ */ a("button", { type: "button", onClick: i, disabled: e === 0, "aria-label": "Slide precedente", children: "Previous" }),
+    /* @__PURE__ */ i("button", { type: "button", onClick: a, disabled: e === 0, "aria-label": "Slide precedente", children: "Previous" }),
     /* @__PURE__ */ p("span", { children: [
       e + 1,
       " / ",
       r
     ] }),
-    /* @__PURE__ */ a(
+    /* @__PURE__ */ i(
       "button",
       {
         type: "button",
@@ -456,54 +456,54 @@ function ut({
         children: "Next"
       }
     ),
-    /* @__PURE__ */ a("button", { type: "button", onClick: t, children: "Quitter" })
+    /* @__PURE__ */ i("button", { type: "button", onClick: t, children: "Quitter" })
   ] });
 }
-function tn({
+function nn({
   deck: e,
   defaultOpen: t = !1,
   initialSlideId: n,
-  onAction: i,
+  onAction: a,
   onOpenChange: r,
   onSlideChange: o,
   open: l,
   options: d,
   selectedSlideId: w
 }) {
-  var Z, C, I, W, J, z, ce;
-  const N = te(null), f = te(void 0), g = te(void 0), [b, S] = Y(t), [c, D] = Y(!0), { activeIndex: u, activeSlide: M, emitAction: R, goTo: L, resetToSlideId: E } = Fe({
+  var q, P, I, W, Q, z, ue;
+  const N = ne(null), f = ne(void 0), g = ne(void 0), [v, S] = G(t), [c, D] = G(!0), { activeIndex: u, activeSlide: C, emitAction: R, goTo: L, resetToSlideId: E } = Be({
     deck: e,
     initialSlideId: n,
-    onAction: i,
+    onAction: a,
     onSlideChange: o,
     selectedSlideId: w
-  }), y = l ?? b, v = ((Z = d == null ? void 0 : d.fullscreen) == null ? void 0 : Z.strategy) ?? "browser-fullscreen", G = ((C = d == null ? void 0 : d.fullscreen) == null ? void 0 : C.closeOnEscape) ?? !0, A = ((I = d == null ? void 0 : d.controls) == null ? void 0 : I.visibility) ?? "auto", x = ((W = d == null ? void 0 : d.controls) == null ? void 0 : W.visibility) === "auto" ? d.controls.autoHideDelayMs ?? 1800 : 1800, j = ((J = d == null ? void 0 : d.hint) == null ? void 0 : J.showWhenControlsHidden) ?? !0, we = ((z = d == null ? void 0 : d.hint) == null ? void 0 : z.text) ?? "Fleches gauche/droite: precedent/suivant. Escape: quitter.", ke = ((ce = d == null ? void 0 : d.hint) == null ? void 0 : ce.position) ?? "bottom-right";
-  g.current = M == null ? void 0 : M.id;
-  const Q = $(
-    (V, P) => {
+  }), y = l ?? v, b = ((q = d == null ? void 0 : d.fullscreen) == null ? void 0 : q.strategy) ?? "browser-fullscreen", J = ((P = d == null ? void 0 : d.fullscreen) == null ? void 0 : P.closeOnEscape) ?? !0, A = ((I = d == null ? void 0 : d.controls) == null ? void 0 : I.visibility) ?? "auto", x = ((W = d == null ? void 0 : d.controls) == null ? void 0 : W.visibility) === "auto" ? d.controls.autoHideDelayMs ?? 1800 : 1800, j = ((Q = d == null ? void 0 : d.hint) == null ? void 0 : Q.showWhenControlsHidden) ?? !0, ke = ((z = d == null ? void 0 : d.hint) == null ? void 0 : z.text) ?? "Fleches gauche/droite: precedent/suivant. Escape: quitter.", pe = ((ue = d == null ? void 0 : d.hint) == null ? void 0 : ue.position) ?? "bottom-right";
+  g.current = C == null ? void 0 : C.id;
+  const Z = _(
+    (V, M) => {
       l === void 0 && S(V), r == null || r({
         open: V,
-        origin: P,
+        origin: M,
         slideId: g.current,
         createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
       });
     },
     [r, l]
-  ), O = $(
+  ), O = _(
     (V = "mouse") => {
-      const P = N.current;
-      document.fullscreenElement === P && document.exitFullscreen().catch(() => {
-      }), Q(!1, V), R({
+      const M = N.current;
+      document.fullscreenElement === M && document.exitFullscreen().catch(() => {
+      }), Z(!1, V), R({
         type: "toggle-fullscreen",
         origin: V,
-        slideId: M == null ? void 0 : M.id,
+        slideId: C == null ? void 0 : C.id,
         createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
       });
     },
-    [M == null ? void 0 : M.id, R, Q]
-  ), F = $(() => {
+    [C == null ? void 0 : C.id, R, Z]
+  ), F = _(() => {
     f.current !== void 0 && (window.clearTimeout(f.current), f.current = void 0);
-  }, []), T = $(() => {
+  }, []), T = _(() => {
     A === "auto" && (D(!0), F(), f.current = window.setTimeout(() => {
       D(!1), f.current = void 0;
     }, x));
@@ -520,23 +520,23 @@ function tn({
     if (!y)
       return;
     const V = N.current;
-    v === "browser-fullscreen" && (V != null && V.requestFullscreen) && V.requestFullscreen().catch(() => {
+    b === "browser-fullscreen" && (V != null && V.requestFullscreen) && V.requestFullscreen().catch(() => {
     });
-    function P() {
-      v === "browser-fullscreen" && document.fullscreenElement === null && Q(!1, "keyboard");
+    function M() {
+      b === "browser-fullscreen" && document.fullscreenElement === null && Z(!1, "keyboard");
     }
-    return document.addEventListener("fullscreenchange", P), () => {
-      document.removeEventListener("fullscreenchange", P), document.fullscreenElement === V && document.exitFullscreen().catch(() => {
+    return document.addEventListener("fullscreenchange", M), () => {
+      document.removeEventListener("fullscreenchange", M), document.fullscreenElement === V && document.exitFullscreen().catch(() => {
       });
     };
-  }, [v, y, Q]), U(() => {
+  }, [b, y, Z]), U(() => {
     if (!y)
       return;
-    function V(P) {
-      (P.key === "Escape" || P.key === "ArrowRight" || P.key === "PageDown" || P.key === " " || P.key === "ArrowLeft" || P.key === "PageUp") && (P.preventDefault(), P.stopImmediatePropagation()), P.key === "Escape" && G && O("keyboard"), (P.key === "ArrowRight" || P.key === "PageDown" || P.key === " ") && L(u + 1, "keyboard"), (P.key === "ArrowLeft" || P.key === "PageUp") && L(u - 1, "keyboard");
+    function V(M) {
+      (M.key === "Escape" || M.key === "ArrowRight" || M.key === "PageDown" || M.key === " " || M.key === "ArrowLeft" || M.key === "PageUp") && (M.preventDefault(), M.stopImmediatePropagation()), M.key === "Escape" && J && O("keyboard"), (M.key === "ArrowRight" || M.key === "PageDown" || M.key === " ") && L(u + 1, "keyboard"), (M.key === "ArrowLeft" || M.key === "PageUp") && L(u - 1, "keyboard");
     }
     return window.addEventListener("keydown", V, !0), () => window.removeEventListener("keydown", V, !0);
-  }, [u, G, O, L, y]), !y || !M)
+  }, [u, J, O, L, y]), !y || !C)
     return null;
   const B = A === "visible" || A === "auto" && c, k = j && !B;
   return /* @__PURE__ */ p(
@@ -550,9 +550,9 @@ function tn({
       onMouseMove: T,
       onPointerMove: T,
       children: [
-        /* @__PURE__ */ a("div", { className: "deck-presentation-stage", children: /* @__PURE__ */ a(He, { deck: e, activeIndex: u }) }),
-        B ? /* @__PURE__ */ a(
-          ut,
+        /* @__PURE__ */ i("div", { className: "deck-presentation-stage", children: /* @__PURE__ */ i(Fe, { deck: e, activeIndex: u }) }),
+        B ? /* @__PURE__ */ i(
+          mt,
           {
             activeIndex: u,
             slideCount: e.slides.length,
@@ -561,15 +561,15 @@ function tn({
             onClose: () => O("mouse")
           }
         ) : null,
-        k ? /* @__PURE__ */ a("p", { className: "deck-presentation-hint", "data-position": ke, children: we }) : null
+        k ? /* @__PURE__ */ i("p", { className: "deck-presentation-hint", "data-position": pe, children: ke }) : null
       ]
     }
   );
 }
-function nn({ deck: e }) {
-  return /* @__PURE__ */ a("div", { className: `deck-print-root ${e.theme.cssClassName}`, children: e.slides.map((t) => /* @__PURE__ */ a("section", { className: "deck-print-page", "data-slide-id": t.id, children: /* @__PURE__ */ a(he, { slide: t, target: "print" }) }, t.id)) });
+function an({ deck: e }) {
+  return /* @__PURE__ */ i("div", { className: `deck-print-root ${e.theme.cssClassName}`, children: e.slides.map((t) => /* @__PURE__ */ i("section", { className: "deck-print-page", "data-slide-id": t.id, children: /* @__PURE__ */ i(ge, { slide: t, target: "print" }) }, t.id)) });
 }
-const mt = {
+const ft = {
   async exportDeck(e) {
     return e.mode !== "browser-print" ? {
       status: "failed",
@@ -583,37 +583,37 @@ const mt = {
     } : (window.print(), { status: "opened-print-dialog" });
   }
 };
-function Ee(e, t) {
+function Te(e, t) {
   return `${e}:v1:${t}:current`;
 }
-function pe(e, t) {
+function ye(e, t) {
   return `${e}:v1:${t}:draft`;
 }
 function De(e, t) {
   return `${e}:v1:${t}:versions:index`;
 }
-function me(e, t, n) {
+function fe(e, t, n) {
   return `${e}:v1:${t}:versions:${n}`;
 }
-class Be {
+class Ue {
   async loadCurrent(t) {
-    return fe(Ee(t.namespace, t.deckId));
+    return he(Te(t.namespace, t.deckId));
   }
   async saveCurrent(t) {
-    return oe(Ee(t.namespace, t.deckId), t);
+    return se(Te(t.namespace, t.deckId), t);
   }
   async saveDraft(t) {
-    return oe(pe(t.namespace, t.deckId), t);
+    return se(ye(t.namespace, t.deckId), t);
   }
   async loadDraft(t) {
-    return fe(pe(t.namespace, t.deckId));
+    return he(ye(t.namespace, t.deckId));
   }
   async clearDraft(t) {
     var n;
     try {
-      return (n = le()) == null || n.removeItem(pe(t.namespace, t.deckId)), { status: "success" };
-    } catch (i) {
-      return Ae(i);
+      return (n = de()) == null || n.removeItem(ye(t.namespace, t.deckId)), { status: "success" };
+    } catch (a) {
+      return Ae(a);
     }
   }
   async createVersion(t) {
@@ -630,10 +630,10 @@ class Be {
       selectedSlideId: t.selectedSlideId,
       compilerStatus: t.compilerStatus,
       diagnosticsSummary: t.diagnosticsSummary
-    }, i = JSON.stringify(n), r = await oe(me(t.namespace, t.deckId, t.id), n);
+    }, a = JSON.stringify(n), r = await se(fe(t.namespace, t.deckId, t.id), n);
     if (r.status === "failed")
       return r;
-    const o = await ye(t.namespace, t.deckId), l = {
+    const o = await be(t.namespace, t.deckId), l = {
       deckId: t.deckId,
       namespace: t.namespace,
       schemaVersion: 1,
@@ -650,41 +650,41 @@ class Be {
           sourceHash: t.sourceHash,
           selectedSlideId: t.selectedSlideId,
           compilerStatus: t.compilerStatus,
-          sizeBytes: i.length
+          sizeBytes: a.length
         },
         ...o.versions.filter((w) => w.id !== t.id)
       ]
-    }, d = ft(l, t.limits);
-    return oe(De(t.namespace, t.deckId), d);
+    }, d = ht(l, t.limits);
+    return se(De(t.namespace, t.deckId), d);
   }
   async listVersions(t) {
-    return (await ye(t.namespace, t.deckId)).versions;
+    return (await be(t.namespace, t.deckId)).versions;
   }
   async loadVersion(t) {
-    return fe(
-      me(t.namespace, t.deckId, t.versionId)
+    return he(
+      fe(t.namespace, t.deckId, t.versionId)
     );
   }
   async deleteVersion(t) {
     var n;
     try {
-      (n = le()) == null || n.removeItem(me(t.namespace, t.deckId, t.versionId));
-      const i = await ye(t.namespace, t.deckId), r = {
-        ...i,
+      (n = de()) == null || n.removeItem(fe(t.namespace, t.deckId, t.versionId));
+      const a = await be(t.namespace, t.deckId), r = {
+        ...a,
         updatedAtIso: (/* @__PURE__ */ new Date()).toISOString(),
-        versions: i.versions.filter((o) => o.id !== t.versionId)
+        versions: a.versions.filter((o) => o.id !== t.versionId)
       };
-      return oe(De(t.namespace, t.deckId), r);
-    } catch (i) {
-      return Ae(i);
+      return se(De(t.namespace, t.deckId), r);
+    } catch (a) {
+      return Ae(a);
     }
   }
 }
-function ft(e, t) {
+function ht(e, t) {
   var o;
   if (!t)
     return e;
-  const n = [...e.versions], i = n.filter((l) => l.reason === "autosave");
+  const n = [...e.versions], a = n.filter((l) => l.reason === "autosave");
   for (; n.length > t.maxVersionsPerDeck; ) {
     const l = ve(n, (d) => d.reason === "autosave");
     n.splice(l >= 0 ? l : n.length - 1, 1);
@@ -700,15 +700,15 @@ function ft(e, t) {
     const l = ve(n, (N) => N.reason === "autosave"), d = l >= 0 ? l : n.length - 1, [w] = n.splice(d, 1);
     r -= (w == null ? void 0 : w.sizeBytes) ?? 0;
   }
-  for (const l of i.filter((d) => !n.some((w) => w.id === d.id)))
-    (o = le()) == null || o.removeItem(me(e.namespace, e.deckId, l.id));
+  for (const l of a.filter((d) => !n.some((w) => w.id === d.id)))
+    (o = de()) == null || o.removeItem(fe(e.namespace, e.deckId, l.id));
   return {
     ...e,
     versions: n
   };
 }
-async function ye(e, t) {
-  return await fe(De(e, t)) ?? {
+async function be(e, t) {
+  return await he(De(e, t)) ?? {
     deckId: t,
     namespace: e,
     schemaVersion: 1,
@@ -716,37 +716,37 @@ async function ye(e, t) {
     versions: []
   };
 }
-function fe(e) {
+function he(e) {
   var t;
   try {
-    const n = (t = le()) == null ? void 0 : t.getItem(e);
+    const n = (t = de()) == null ? void 0 : t.getItem(e);
     return n ? JSON.parse(n) : null;
   } catch {
     return null;
   }
 }
-function oe(e, t) {
+function se(e, t) {
   var n;
   try {
-    return (n = le()) == null || n.setItem(e, JSON.stringify(t)), { status: "success" };
-  } catch (i) {
-    return Ae(i);
+    return (n = de()) == null || n.setItem(e, JSON.stringify(t)), { status: "success" };
+  } catch (a) {
+    return Ae(a);
   }
 }
 function Ae(e) {
   return {
     status: "failed",
-    diagnostics: [ht(e)]
+    diagnostics: [gt(e)]
   };
 }
-function ht(e) {
+function gt(e) {
   return {
     code: "STORAGE_QUOTA_EXCEEDED",
     severity: "error",
     message: e instanceof Error ? e.message : "Unable to write deck state to storage."
   };
 }
-function le() {
+function de() {
   if (!(typeof window > "u"))
     return window.localStorage;
 }
@@ -756,19 +756,19 @@ function ve(e, t) {
       return n;
   return -1;
 }
-const gt = /^(javascript|data|vbscript):/i, wt = {
+const wt = /^(javascript|data|vbscript):/i, kt = {
   async resolveImage(e) {
-    const t = e.assetId ? e.assets.get(e.assetId) : void 0, n = (t == null ? void 0 : t.src) ?? e.src, i = (t == null ? void 0 : t.alt) ?? "";
-    if (!n || gt.test(n.trim()))
+    const t = e.assetId ? e.assets.get(e.assetId) : void 0, n = (t == null ? void 0 : t.src) ?? e.src, a = (t == null ? void 0 : t.alt) ?? "";
+    if (!n || wt.test(n.trim()))
       throw new Error("Image source is missing or unsafe.");
     return {
       src: n,
-      alt: i
+      alt: a
     };
   }
 };
 function K({ content: e }) {
-  return e.kind === "image" ? /* @__PURE__ */ a(
+  return e.kind === "image" ? /* @__PURE__ */ i(
     "img",
     {
       className: "deck-slot-image",
@@ -779,11 +779,11 @@ function K({ content: e }) {
   ) : e.kind === "renderer" ? /* @__PURE__ */ p("pre", { className: "deck-unsupported-renderer", children: [
     "Renderer: ",
     e.rendererKind
-  ] }) : /* @__PURE__ */ a("div", { className: "deck-markdown", children: e.nodes.map((t, n) => /* @__PURE__ */ a(kt, { node: t }, `${t.kind}-${n}`)) });
+  ] }) : /* @__PURE__ */ i("div", { className: "deck-markdown", children: e.nodes.map((t, n) => /* @__PURE__ */ i(pt, { node: t }, `${t.kind}-${n}`)) });
 }
-function kt({ node: e }) {
-  return e.kind === "code" ? /* @__PURE__ */ a("pre", { className: "deck-code-block", children: /* @__PURE__ */ a("code", { children: e.code }) }) : e.kind === "mermaid" ? /* @__PURE__ */ a("pre", { className: "deck-mermaid-block", children: e.chart }) : /* @__PURE__ */ a(
-    Ye,
+function pt({ node: e }) {
+  return e.kind === "code" ? /* @__PURE__ */ i("pre", { className: "deck-code-block", children: /* @__PURE__ */ i("code", { children: e.code }) }) : e.kind === "mermaid" ? /* @__PURE__ */ i("pre", { className: "deck-mermaid-block", children: e.chart }) : /* @__PURE__ */ i(
+    Ge,
     {
       allowedElements: [
         "p",
@@ -814,74 +814,74 @@ function Pe({
   slide: e,
   name: t = "title",
   className: n,
-  variant: i = "section"
+  variant: a = "section"
 }) {
   const r = e.slots.get(t);
   if (!r)
     return null;
-  const o = pt(yt(r.content).length);
-  return /* @__PURE__ */ a(
+  const o = yt(bt(r.content).length);
+  return /* @__PURE__ */ i(
     "div",
     {
       className: ["deck-title-slot", n].filter(Boolean).join(" "),
       "data-slot": t,
-      "data-title-variant": i,
+      "data-title-variant": a,
       "data-title-size": o,
-      children: /* @__PURE__ */ a(K, { content: r.content })
+      children: /* @__PURE__ */ i(K, { content: r.content })
     }
   );
 }
-function pt(e) {
+function yt(e) {
   return e > 72 ? "xlong" : e > 48 ? "long" : e > 30 ? "medium" : "short";
 }
-function yt(e) {
+function bt(e) {
   return e.kind !== "markdown" ? "" : e.markdown.replace(/^#{1,6}\s+/gm, "").replace(/[*_`~[\]()>#-]/g, "").replace(/\s+/g, " ").trim();
 }
 function vt({ slide: e, target: t }) {
   return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-cover", "data-target": t, children: [
     /* @__PURE__ */ p("div", { className: "deck-cover-copy", children: [
-      /* @__PURE__ */ a(be, { slide: e, name: "eyebrow", className: "deck-cover-eyebrow" }),
-      /* @__PURE__ */ a(Pe, { slide: e, className: "deck-cover-title", variant: "cover" }),
-      /* @__PURE__ */ a(be, { slide: e, name: "subtitle", className: "deck-cover-subtitle" })
+      /* @__PURE__ */ i(Se, { slide: e, name: "eyebrow", className: "deck-cover-eyebrow" }),
+      /* @__PURE__ */ i(Pe, { slide: e, className: "deck-cover-title", variant: "cover" }),
+      /* @__PURE__ */ i(Se, { slide: e, name: "subtitle", className: "deck-cover-subtitle" })
     ] }),
-    /* @__PURE__ */ a(be, { slide: e, name: "footer", className: "deck-slide-footer" })
+    /* @__PURE__ */ i(Se, { slide: e, name: "footer", className: "deck-slide-footer" })
   ] });
 }
-function be({
+function Se({
   slide: e,
   name: t,
   className: n
 }) {
-  const i = e.slots.get(t);
-  return i ? /* @__PURE__ */ a("div", { className: n, "data-slot": t, children: /* @__PURE__ */ a(K, { content: i.content }) }) : null;
-}
-function bt({ slide: e, target: t }) {
-  const n = e.slots.get("image"), i = e.slots.get("caption");
-  return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-image-only", "data-target": t, children: [
-    /* @__PURE__ */ a("main", { children: n ? /* @__PURE__ */ a(K, { content: n.content }) : null }),
-    /* @__PURE__ */ a("footer", { children: i ? /* @__PURE__ */ a(K, { content: i.content }) : null })
-  ] });
+  const a = e.slots.get(t);
+  return a ? /* @__PURE__ */ i("div", { className: n, "data-slot": t, children: /* @__PURE__ */ i(K, { content: a.content }) }) : null;
 }
 function St({ slide: e, target: t }) {
-  const n = e.slots.get("body"), i = e.slots.get("footer");
-  return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-title-body", "data-target": t, children: [
-    /* @__PURE__ */ a("header", { children: /* @__PURE__ */ a(Pe, { slide: e }) }),
-    /* @__PURE__ */ a("main", { children: n ? /* @__PURE__ */ a(K, { content: n.content }) : null }),
-    /* @__PURE__ */ a("footer", { children: i ? /* @__PURE__ */ a(K, { content: i.content }) : null })
+  const n = e.slots.get("image"), a = e.slots.get("caption");
+  return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-image-only", "data-target": t, children: [
+    /* @__PURE__ */ i("main", { children: n ? /* @__PURE__ */ i(K, { content: n.content }) : null }),
+    /* @__PURE__ */ i("footer", { children: a ? /* @__PURE__ */ i(K, { content: a.content }) : null })
   ] });
 }
 function It({ slide: e, target: t }) {
-  const n = e.slots.get("left"), i = e.slots.get("right"), r = e.slots.get("footer");
-  return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-two-columns", "data-target": t, children: [
-    /* @__PURE__ */ a("header", { children: /* @__PURE__ */ a(Pe, { slide: e }) }),
-    /* @__PURE__ */ p("main", { className: "deck-two-columns-grid", children: [
-      /* @__PURE__ */ a("section", { children: n ? /* @__PURE__ */ a(K, { content: n.content }) : null }),
-      /* @__PURE__ */ a("section", { children: i ? /* @__PURE__ */ a(K, { content: i.content }) : null })
-    ] }),
-    /* @__PURE__ */ a("footer", { children: r ? /* @__PURE__ */ a(K, { content: r.content }) : null })
+  const n = e.slots.get("body"), a = e.slots.get("footer");
+  return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-title-body", "data-target": t, children: [
+    /* @__PURE__ */ i("header", { children: /* @__PURE__ */ i(Pe, { slide: e }) }),
+    /* @__PURE__ */ i("main", { children: n ? /* @__PURE__ */ i(K, { content: n.content }) : null }),
+    /* @__PURE__ */ i("footer", { children: a ? /* @__PURE__ */ i(K, { content: a.content }) : null })
   ] });
 }
-const Nt = [
+function Nt({ slide: e, target: t }) {
+  const n = e.slots.get("left"), a = e.slots.get("right"), r = e.slots.get("footer");
+  return /* @__PURE__ */ p("article", { className: "deck-layout deck-layout-two-columns", "data-target": t, children: [
+    /* @__PURE__ */ i("header", { children: /* @__PURE__ */ i(Pe, { slide: e }) }),
+    /* @__PURE__ */ p("main", { className: "deck-two-columns-grid", children: [
+      /* @__PURE__ */ i("section", { children: n ? /* @__PURE__ */ i(K, { content: n.content }) : null }),
+      /* @__PURE__ */ i("section", { children: a ? /* @__PURE__ */ i(K, { content: a.content }) : null })
+    ] }),
+    /* @__PURE__ */ i("footer", { children: r ? /* @__PURE__ */ i(K, { content: r.content }) : null })
+  ] });
+}
+const Dt = [
   {
     name: "cover",
     displayName: "Centered title",
@@ -927,7 +927,7 @@ const Nt = [
         }
       ]
     },
-    component: St
+    component: It
   },
   {
     name: "two-columns",
@@ -951,7 +951,7 @@ const Nt = [
         }
       ]
     },
-    component: It
+    component: Nt
   },
   {
     name: "image-only",
@@ -973,26 +973,26 @@ const Nt = [
         }
       ]
     },
-    component: bt
+    component: St
   }
 ];
 function Me({ node: e }) {
-  return /* @__PURE__ */ a(K, { content: { kind: "markdown", markdown: "", nodes: [e] } });
+  return /* @__PURE__ */ i(K, { content: { kind: "markdown", markdown: "", nodes: [e] } });
 }
-const Dt = {
+const At = {
   kind: "markdown",
   render: Me
-}, At = {
+}, Pt = {
   kind: "code",
   render: Me
-}, Pt = {
+}, Mt = {
   kind: "mermaid",
   render: Me
-}, Mt = [
-  Dt,
+}, Ct = [
   At,
-  Pt
-], Se = {
+  Pt,
+  Mt
+], Y = {
   color: {
     background: "#ffffff",
     foreground: "#111827",
@@ -1018,22 +1018,91 @@ const Dt = {
 }, xt = [
   {
     id: "default",
-    displayName: "Default",
+    displayName: "Standard",
     cssClassName: "deck-theme-default",
-    tokens: Se
+    tokens: Y
   },
   {
     id: "fintech-light",
-    displayName: "Fintech light",
+    displayName: "Standard actuel",
     cssClassName: "deck-theme-fintech-light",
-    tokens: Se
+    tokens: Y
+  },
+  {
+    id: "qastia-coaching",
+    displayName: "Qastia coaching",
+    cssClassName: "deck-theme-qastia-coaching",
+    tokens: {
+      ...Y,
+      color: {
+        background: "#fbf9f6",
+        foreground: "#171717",
+        primary: "#9c7a4d",
+        muted: "#7f7467",
+        danger: "#9d4037",
+        warning: "#a66f2b"
+      },
+      font: {
+        heading: "Fraunces, Georgia, serif",
+        body: "Manrope, Inter, system-ui, sans-serif",
+        mono: Y.font.mono
+      }
+    }
+  },
+  {
+    id: "editorial-indigo",
+    displayName: "Editorial indigo",
+    cssClassName: "deck-theme-editorial-indigo",
+    tokens: {
+      ...Y,
+      color: {
+        background: "#f7f5ff",
+        foreground: "#17122f",
+        primary: "#5b45d6",
+        muted: "#6f6a86",
+        danger: "#b42318",
+        warning: "#b54708"
+      }
+    }
+  },
+  {
+    id: "sage-coral",
+    displayName: "Sage coral",
+    cssClassName: "deck-theme-sage-coral",
+    tokens: {
+      ...Y,
+      color: {
+        background: "#f7fbf8",
+        foreground: "#13251d",
+        primary: "#d75f45",
+        muted: "#5d7468",
+        danger: "#b42318",
+        warning: "#a15c07"
+      }
+    }
+  },
+  {
+    id: "midnight-gold",
+    displayName: "Midnight gold",
+    cssClassName: "deck-theme-midnight-gold",
+    tokens: {
+      ...Y,
+      color: {
+        background: "#101624",
+        foreground: "#f8f4e9",
+        primary: "#d6a84f",
+        muted: "#b7c0ce",
+        danger: "#ff8a7a",
+        warning: "#f4bf64"
+      }
+    }
   },
   {
     id: "fintech-dark",
     displayName: "Fintech dark",
     cssClassName: "deck-theme-fintech-dark",
     tokens: {
-      ...Se,
+      ...Y,
       color: {
         background: "#0f172a",
         foreground: "#f8fafc",
@@ -1044,31 +1113,31 @@ const Dt = {
       }
     }
   }
-], Ct = [
+], Rt = [
   { name: "none", displayName: "None" },
   { name: "fade", displayName: "Fade" },
   { name: "slide-left", displayName: "Slide left" },
   { name: "slide-right", displayName: "Slide right" },
   { name: "zoom", displayName: "Zoom" }
 ];
-function Rt(e = {}) {
-  const t = e.layouts ?? Nt, n = e.renderers ?? Mt, i = e.themes ?? xt, r = e.transitions ?? Ct;
+function Lt(e = {}) {
+  const t = e.layouts ?? Dt, n = e.renderers ?? Ct, a = e.themes ?? xt, r = e.transitions ?? Rt;
   return {
     layouts: new Map(t.map((o) => [o.name, o])),
     renderers: new Map(n.map((o) => [o.kind, o])),
-    themes: new Map(i.map((o) => [o.id, o])),
+    themes: new Map(a.map((o) => [o.id, o])),
     transitions: new Map(r.map((o) => [o.name, o])),
-    assets: wt,
-    storage: e.storage ?? new Be(),
-    pdf: e.pdf ?? mt
+    assets: kt,
+    storage: e.storage ?? new Ue(),
+    pdf: e.pdf ?? ft
   };
 }
-const Lt = Rt();
-function Et({
+const Et = Lt();
+function Tt({
   activeIndex: e,
   onNext: t,
   onOpenPresentation: n,
-  onPresentationControlsModeChange: i,
+  onPresentationControlsModeChange: a,
   onPrevious: r,
   placement: o,
   presentationButtonLabel: l,
@@ -1077,12 +1146,12 @@ function Et({
   presentationUnavailableLabel: N,
   showCounter: f,
   showPresentationButton: g,
-  showPresentationControlsModeSelect: b,
+  showPresentationControlsModeSelect: v,
   showPreviousNext: S,
   slideCount: c
 }) {
   return /* @__PURE__ */ p("div", { className: "deck-show-toolbar", "data-placement": o, "aria-label": "Deck navigation", children: [
-    g ? /* @__PURE__ */ a(
+    g ? /* @__PURE__ */ i(
       "button",
       {
         type: "button",
@@ -1092,35 +1161,35 @@ function Et({
         children: l
       }
     ) : null,
-    g && b ? /* @__PURE__ */ p("label", { className: "deck-presentation-mode-select", children: [
-      /* @__PURE__ */ a("span", { children: "Presentation controls" }),
+    g && v ? /* @__PURE__ */ p("label", { className: "deck-presentation-mode-select", children: [
+      /* @__PURE__ */ i("span", { children: "Presentation controls" }),
       /* @__PURE__ */ p(
         "select",
         {
           value: d,
-          onChange: (D) => i(D.currentTarget.value),
+          onChange: (D) => a(D.currentTarget.value),
           children: [
-            /* @__PURE__ */ a("option", { value: "visible", children: "Boutons visibles" }),
-            /* @__PURE__ */ a("option", { value: "hidden", children: "Boutons hidden" }),
-            /* @__PURE__ */ a("option", { value: "auto", children: "Auto" })
+            /* @__PURE__ */ i("option", { value: "visible", children: "Boutons visibles" }),
+            /* @__PURE__ */ i("option", { value: "hidden", children: "Boutons hidden" }),
+            /* @__PURE__ */ i("option", { value: "auto", children: "Auto" })
           ]
         }
       )
     ] }) : null,
-    S ? /* @__PURE__ */ a("button", { type: "button", onClick: r, disabled: e === 0, children: "Previous" }) : null,
+    S ? /* @__PURE__ */ i("button", { type: "button", onClick: r, disabled: e === 0, children: "Previous" }) : null,
     f ? /* @__PURE__ */ p("span", { children: [
       e + 1,
       " / ",
       c
     ] }) : null,
-    S ? /* @__PURE__ */ a("button", { type: "button", onClick: t, disabled: e >= c - 1, children: "Next" }) : null
+    S ? /* @__PURE__ */ i("button", { type: "button", onClick: t, disabled: e >= c - 1, children: "Next" }) : null
   ] });
 }
-function an({
+function rn({
   controls: e,
   deck: t,
   defaultSelectedSlideId: n,
-  initialSlideId: i,
+  initialSlideId: a,
   keyboardNavigation: r,
   mode: o = "viewer",
   onAction: l,
@@ -1128,43 +1197,43 @@ function an({
   onSlideChange: w,
   selectedSlideId: N
 }) {
-  const { activeIndex: f, activeSlide: g, emitAction: b, goTo: S } = Fe({
+  const { activeIndex: f, activeSlide: g, emitAction: v, goTo: S } = Be({
     deck: t,
     defaultSelectedSlideId: n,
-    initialSlideId: i,
+    initialSlideId: a,
     onAction: l,
     onSlideChange: w,
     selectedSlideId: N
-  }), c = e === !1 ? void 0 : e, D = e !== !1, u = (c == null ? void 0 : c.showPreviousNext) ?? !0, M = (c == null ? void 0 : c.showCounter) ?? !0, R = !!(c != null && c.showPresentationButton), L = te(null), E = r ?? (o === "embedded" ? "focus-within" : "global"), y = $(() => {
+  }), c = e === !1 ? void 0 : e, D = e !== !1, u = (c == null ? void 0 : c.showPreviousNext) ?? !0, C = (c == null ? void 0 : c.showCounter) ?? !0, R = !!(c != null && c.showPresentationButton), L = ne(null), E = r ?? (o === "embedded" ? "focus-within" : "global"), y = _(() => {
     c != null && c.presentationDisabled || (d == null || d({
       type: "presentation-requested",
       slideId: g == null ? void 0 : g.id,
       activeSlideIndex: f,
       createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
-    }), b({
+    }), v({
       type: "toggle-fullscreen",
       origin: "mouse",
       slideId: g == null ? void 0 : g.id,
       createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
     }));
-  }, [f, g == null ? void 0 : g.id, c == null ? void 0 : c.presentationDisabled, b, d]);
+  }, [f, g == null ? void 0 : g.id, c == null ? void 0 : c.presentationDisabled, v, d]);
   U(() => {
     if (E === !1)
       return;
     function A(x) {
       var j;
-      Tt(x.target) || E === "focus-within" && (!(x.target instanceof Node) || !((j = L.current) != null && j.contains(x.target))) || ((x.key === "ArrowRight" || x.key === "PageDown" || x.key === " ") && (x.preventDefault(), S(f + 1, "keyboard")), (x.key === "ArrowLeft" || x.key === "PageUp") && (x.preventDefault(), S(f - 1, "keyboard")));
+      Vt(x.target) || E === "focus-within" && (!(x.target instanceof Node) || !((j = L.current) != null && j.contains(x.target))) || ((x.key === "ArrowRight" || x.key === "PageDown" || x.key === " ") && (x.preventDefault(), S(f + 1, "keyboard")), (x.key === "ArrowLeft" || x.key === "PageUp") && (x.preventDefault(), S(f - 1, "keyboard")));
     }
     return window.addEventListener("keydown", A), () => window.removeEventListener("keydown", A);
   }, [f, S, E]);
-  const v = (c == null ? void 0 : c.placement) ?? "top", G = D ? /* @__PURE__ */ a(
-    Et,
+  const b = (c == null ? void 0 : c.placement) ?? "top", J = D ? /* @__PURE__ */ i(
+    Tt,
     {
       activeIndex: f,
       slideCount: t.slides.length,
-      placement: v,
+      placement: b,
       showPreviousNext: u,
-      showCounter: M,
+      showCounter: C,
       showPresentationButton: R,
       presentationDisabled: !!(c != null && c.presentationDisabled),
       showPresentationControlsModeSelect: !!(c != null && c.showPresentationControlsModeSelect),
@@ -1188,23 +1257,23 @@ function an({
       "data-mode": o,
       tabIndex: E === "focus-within" ? 0 : void 0,
       children: [
-        v === "top" ? G : null,
-        /* @__PURE__ */ a(He, { deck: t, activeIndex: f }),
-        v === "bottom" ? G : null
+        b === "top" ? J : null,
+        /* @__PURE__ */ i(Fe, { deck: t, activeIndex: f }),
+        b === "bottom" ? J : null
       ]
     }
   );
 }
-function Tt(e) {
+function Vt(e) {
   return e instanceof HTMLElement ? !!e.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']") : !1;
 }
-function ee(e) {
+function te(e) {
   let t = 2166136261;
   for (let n = 0; n < e.length; n += 1)
     t ^= e.charCodeAt(n), t = Math.imul(t, 16777619);
   return (t >>> 0).toString(16).padStart(8, "0");
 }
-const Vt = {
+const $t = {
   desktopBreakpointPx: 1024,
   slideRailWidthPx: 260,
   inspectorWidthPx: 340,
@@ -1227,7 +1296,7 @@ const Vt = {
   allowVersionRestore: !0,
   allowVersionCompare: !1
 }, Ie = {
-  adapter: new Be(),
+  adapter: new Ue(),
   namespace: "deck-runtime",
   maxVersionsPerDeck: 50,
   maxAutosaveVersionsPerDeck: 20,
@@ -1236,13 +1305,13 @@ const Vt = {
   createVersionOnManualSave: !0,
   createVersionBeforeDestructiveAction: !0,
   recoverOnMount: !0
-}, $t = {
+}, Ht = {
   draftDebounceMs: 800,
   versionIntervalMs: 3e5,
   minChangeDistanceForVersion: 500,
   createVersionOnValidDeckOnly: !1
 };
-function de(e) {
+function ce(e) {
   try {
     const t = _e.parse(e.content);
     return ie(t) ? t : null;
@@ -1250,110 +1319,110 @@ function de(e) {
     return null;
   }
 }
-function ge(e, t) {
+function we(e, t) {
   return {
     ...e,
     content: _e.stringify(t, { lineWidth: 0 })
   };
 }
-function ne(e) {
+function ae(e) {
   return Array.isArray(e.slides) || (e.slides = []), e.slides.filter(ie);
 }
-function Te(e, t, n, i) {
-  return xe(e, t, (r) => {
-    const o = Ke(r);
-    o[n] = { markdown: i };
+function Ve(e, t, n, a) {
+  return Ce(e, t, (r) => {
+    const o = je(r);
+    o[n] = { markdown: a };
   });
 }
-function Ne(e, t, n, i) {
-  return xe(e, t, (r) => {
-    const o = Ke(r);
+function Ne(e, t, n, a) {
+  return Ce(e, t, (r) => {
+    const o = je(r);
     o[n] = {
-      image: Ot({
-        assetId: i.assetId,
-        src: i.src,
-        alt: i.alt
+      image: Wt({
+        assetId: a.assetId,
+        src: a.src,
+        alt: a.alt
       })
     };
   });
 }
-function Ht(e, t, n) {
-  return xe(e, t, (i) => {
-    i.layout = n;
+function Ft(e, t, n) {
+  return Ce(e, t, (a) => {
+    a.layout = n;
   });
 }
-function Ft(e, t = "title-body") {
-  const n = de(e);
+function Bt(e, t = "title-body") {
+  const n = ce(e);
   if (!n)
     return e;
-  const i = ne(n), r = je(i, "slide");
-  return i.push({
+  const a = ae(n), r = Oe(a, "slide");
+  return a.push({
     id: r,
     layout: t,
     slots: {
       title: { markdown: "New slide" },
       body: { markdown: "" }
     }
-  }), n.slides = i, ge(e, n);
-}
-function Bt(e, t) {
-  const n = de(e);
-  if (!n)
-    return e;
-  const i = ne(n), r = i.findIndex((l) => l.id === t);
-  if (r < 0)
-    return e;
-  const o = structuredClone(i[r]);
-  return o.id = je(i, `${t}-copy`), i.splice(r + 1, 0, o), n.slides = i, ge(e, n);
+  }), n.slides = a, we(e, n);
 }
 function Ut(e, t) {
-  const n = de(e);
+  const n = ce(e);
   if (!n)
     return e;
-  const i = ne(n).filter((r) => r.id !== t);
-  return n.slides = i.length > 0 ? i : ne(n), ge(e, n);
+  const a = ae(n), r = a.findIndex((l) => l.id === t);
+  if (r < 0)
+    return e;
+  const o = structuredClone(a[r]);
+  return o.id = Oe(a, `${t}-copy`), a.splice(r + 1, 0, o), n.slides = a, we(e, n);
 }
-function Kt(e, t, n) {
-  const i = Ue(e, t, n);
-  return ie(i) && typeof i.markdown == "string" ? i.markdown : "";
+function Kt(e, t) {
+  const n = ce(e);
+  if (!n)
+    return e;
+  const a = ae(n).filter((r) => r.id !== t);
+  return n.slides = a.length > 0 ? a : ae(n), we(e, n);
 }
 function jt(e, t, n) {
-  const i = Ue(e, t, n), r = ie(i) && ie(i.image) ? i.image : {};
+  const a = Ke(e, t, n);
+  return ie(a) && typeof a.markdown == "string" ? a.markdown : "";
+}
+function Ot(e, t, n) {
+  const a = Ke(e, t, n), r = ie(a) && ie(a.image) ? a.image : {};
   return {
     assetId: typeof r.assetId == "string" ? r.assetId : "",
     src: typeof r.src == "string" ? r.src : "",
     alt: typeof r.alt == "string" ? r.alt : ""
   };
 }
-function xe(e, t, n) {
-  const i = de(e);
-  if (!i)
+function Ce(e, t, n) {
+  const a = ce(e);
+  if (!a)
     return e;
-  const r = ne(i), o = r.find((l) => l.id === t);
-  return o ? (n(o), i.slides = r, ge(e, i)) : e;
+  const r = ae(a), o = r.find((l) => l.id === t);
+  return o ? (n(o), a.slides = r, we(e, a)) : e;
 }
-function Ue(e, t, n) {
+function Ke(e, t, n) {
   var o;
-  const i = de(e);
-  if (!i)
+  const a = ce(e);
+  if (!a)
     return;
-  const r = ne(i).find((l) => l.id === t);
+  const r = ae(a).find((l) => l.id === t);
   return (o = r == null ? void 0 : r.slots) == null ? void 0 : o[n];
 }
-function Ke(e) {
+function je(e) {
   return ie(e.slots) || (e.slots = {}), e.slots;
 }
-function je(e, t) {
+function Oe(e, t) {
   const n = new Set(e.map((o) => o.id).filter((o) => !!o));
-  let i = Ve(t), r = 2;
-  for (; n.has(i); )
-    i = `${Ve(t)}-${r}`, r += 1;
-  return i;
+  let a = $e(t), r = 2;
+  for (; n.has(a); )
+    a = `${$e(t)}-${r}`, r += 1;
+  return a;
 }
-function Ve(e) {
+function $e(e) {
   return e.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "slide";
 }
-function Ot(e) {
+function Wt(e) {
   return Object.fromEntries(
     Object.entries(e).filter((t) => !!t[1])
   );
@@ -1361,12 +1430,12 @@ function Ot(e) {
 function ie(e) {
   return typeof e == "object" && e !== null && !Array.isArray(e);
 }
-function rn(e) {
-  var Ce;
+function on(e) {
+  var Re;
   const {
     autosave: t,
     deckId: n,
-    features: i,
+    features: a,
     initialSelectedSlideId: r,
     layout: o,
     locale: l = "fr-FR",
@@ -1375,44 +1444,44 @@ function rn(e) {
     onCompile: N,
     onError: f,
     onRestoreVersion: g,
-    onSave: b,
+    onSave: v,
     onSelectedSlideChange: S,
     readOnly: c,
     storage: D
-  } = e, u = e.options, M = e.runtime ?? Lt, R = e.mode === "controlled", [L, E] = Y(
+  } = e, u = e.options, C = e.runtime ?? Et, R = e.mode === "controlled", [L, E] = G(
     R ? e.value : e.initialValue
-  ), y = R ? e.value : L, [v, G] = Y(null), [A, x] = Y(
+  ), y = R ? e.value : L, [b, J] = G(null), [A, x] = G(
     r
-  ), [j, we] = Y(
-    ((Ce = u == null ? void 0 : u.editing) == null ? void 0 : Ce.defaultMode) === "source" ? "source" : "form"
-  ), [ke, Q] = Y([]), O = te(N), F = te(f);
+  ), [j, ke] = G(
+    ((Re = u == null ? void 0 : u.editing) == null ? void 0 : Re.defaultMode) === "source" ? "source" : "form"
+  ), [pe, Z] = G([]), O = ne(N), F = ne(f);
   O.current = N, F.current = f;
-  const T = se(() => {
-    var _;
-    const s = { ...Vt, ...o }, m = u == null ? void 0 : u.panels;
-    return (m == null ? void 0 : m.slideRail) === !1 ? s.showSlideRail = !1 : m != null && m.slideRail && (s.showSlideRail = m.slideRail.visibleDefault ?? s.showSlideRail, s.slideRailWidthPx = m.slideRail.widthPx ?? s.slideRailWidthPx), (m == null ? void 0 : m.inspector) === !1 ? s.showInspector = !1 : m != null && m.inspector && (s.showInspector = m.inspector.visibleDefault ?? s.showInspector, s.inspectorWidthPx = m.inspector.widthPx ?? s.inspectorWidthPx), (m == null ? void 0 : m.diagnostics) === !1 ? s.showDiagnosticsPanel = !1 : m != null && m.diagnostics && (s.showDiagnosticsPanel = m.diagnostics.visibleDefault ?? s.showDiagnosticsPanel), (m == null ? void 0 : m.activeSlidePreview) === !1 ? s.showActiveSlidePreview = !1 : m != null && m.activeSlidePreview && (s.showActiveSlidePreview = m.activeSlidePreview.visibleDefault ?? s.showActiveSlidePreview), (m == null ? void 0 : m.versionHistory) === !1 ? s.showVersionHistory = !1 : m != null && m.versionHistory && (s.showVersionHistory = m.versionHistory.visibleDefault ?? s.showVersionHistory), ((_ = u == null ? void 0 : u.editing) == null ? void 0 : _.allowSourceMode) === !1 && (s.showSourceModeToggle = !1), s;
-  }, [o, u]), B = se(() => {
-    var m, _, X, re;
-    const s = { ..._t, ...i };
-    return ((m = u == null ? void 0 : u.editing) == null ? void 0 : m.allowSourceMode) !== void 0 && (s.allowRawSourceEdit = u.editing.allowSourceMode), ((_ = u == null ? void 0 : u.editing) == null ? void 0 : _.allowLayoutChange) !== void 0 && (s.allowLayoutChange = u.editing.allowLayoutChange), ((X = u == null ? void 0 : u.layoutSelector) == null ? void 0 : X.enabled) !== void 0 && (s.allowLayoutChange = u.layoutSelector.enabled), (re = u == null ? void 0 : u.panels) != null && re.slideRail && (u.panels.slideRail.allowReorder !== void 0 && (s.allowReorderSlides = u.panels.slideRail.allowReorder), u.panels.slideRail.allowAddDelete !== void 0 && (s.allowAddSlide = u.panels.slideRail.allowAddDelete, s.allowDeleteSlide = u.panels.slideRail.allowAddDelete)), s;
-  }, [i, u]), k = se(
+  const T = le(() => {
+    var $;
+    const s = { ...$t, ...o }, m = u == null ? void 0 : u.panels;
+    return (m == null ? void 0 : m.slideRail) === !1 ? s.showSlideRail = !1 : m != null && m.slideRail && (s.showSlideRail = m.slideRail.visibleDefault ?? s.showSlideRail, s.slideRailWidthPx = m.slideRail.widthPx ?? s.slideRailWidthPx), (m == null ? void 0 : m.inspector) === !1 ? s.showInspector = !1 : m != null && m.inspector && (s.showInspector = m.inspector.visibleDefault ?? s.showInspector, s.inspectorWidthPx = m.inspector.widthPx ?? s.inspectorWidthPx), (m == null ? void 0 : m.diagnostics) === !1 ? s.showDiagnosticsPanel = !1 : m != null && m.diagnostics && (s.showDiagnosticsPanel = m.diagnostics.visibleDefault ?? s.showDiagnosticsPanel), (m == null ? void 0 : m.activeSlidePreview) === !1 ? s.showActiveSlidePreview = !1 : m != null && m.activeSlidePreview && (s.showActiveSlidePreview = m.activeSlidePreview.visibleDefault ?? s.showActiveSlidePreview), (m == null ? void 0 : m.versionHistory) === !1 ? s.showVersionHistory = !1 : m != null && m.versionHistory && (s.showVersionHistory = m.versionHistory.visibleDefault ?? s.showVersionHistory), (($ = u == null ? void 0 : u.editing) == null ? void 0 : $.allowSourceMode) === !1 && (s.showSourceModeToggle = !1), s;
+  }, [o, u]), B = le(() => {
+    var m, $, X, oe;
+    const s = { ..._t, ...a };
+    return ((m = u == null ? void 0 : u.editing) == null ? void 0 : m.allowSourceMode) !== void 0 && (s.allowRawSourceEdit = u.editing.allowSourceMode), (($ = u == null ? void 0 : u.editing) == null ? void 0 : $.allowLayoutChange) !== void 0 && (s.allowLayoutChange = u.editing.allowLayoutChange), ((X = u == null ? void 0 : u.layoutSelector) == null ? void 0 : X.enabled) !== void 0 && (s.allowLayoutChange = u.layoutSelector.enabled), (oe = u == null ? void 0 : u.panels) != null && oe.slideRail && (u.panels.slideRail.allowReorder !== void 0 && (s.allowReorderSlides = u.panels.slideRail.allowReorder), u.panels.slideRail.allowAddDelete !== void 0 && (s.allowAddSlide = u.panels.slideRail.allowAddDelete, s.allowDeleteSlide = u.panels.slideRail.allowAddDelete)), s;
+  }, [a, u]), k = le(
     () => D === !1 ? void 0 : {
       ...Ie,
       namespace: d ?? (D == null ? void 0 : D.namespace) ?? Ie.namespace,
-      adapter: (D == null ? void 0 : D.adapter) ?? M.storage ?? Ie.adapter,
+      adapter: (D == null ? void 0 : D.adapter) ?? C.storage ?? Ie.adapter,
       ...D
     },
-    [d, M.storage, D]
-  ), Z = se(
-    () => t === !1 ? void 0 : { ...$t, ...t },
+    [d, C.storage, D]
+  ), q = le(
+    () => t === !1 ? void 0 : { ...Ht, ...t },
     [t]
-  ), C = (v == null ? void 0 : v.status) === "valid" || (v == null ? void 0 : v.status) === "degraded" ? v.deck : void 0, I = (C == null ? void 0 : C.slides.find((s) => s.id === A)) ?? (C == null ? void 0 : C.slides[0]), W = $(
-    (s, m, _) => {
+  ), P = (b == null ? void 0 : b.status) === "valid" || (b == null ? void 0 : b.status) === "degraded" ? b.deck : void 0, I = (P == null ? void 0 : P.slides.find((s) => s.id === A)) ?? (P == null ? void 0 : P.slides[0]), W = _(
+    (s, m, $) => {
       const X = {
         reason: m,
         deckId: n,
-        selectedSlideId: _ ?? A,
-        sourceHash: ee(s.content),
+        selectedSlideId: $ ?? A,
+        sourceHash: te(s.content),
         createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
       };
       R || E(s), w == null || w(s, X);
@@ -1421,28 +1490,28 @@ function rn(e) {
   );
   U(() => {
     let s = !1;
-    return at(y, {
-      runtime: M
+    return rt(y, {
+      runtime: C
     }).then((m) => {
-      var _;
-      s || (G(m), (_ = O.current) == null || _.call(O, m));
+      var $;
+      s || (J(m), ($ = O.current) == null || $.call(O, m));
     }).catch((m) => {
-      var _;
-      (_ = F.current) == null || _.call(F, {
+      var $;
+      ($ = F.current) == null || $.call(F, {
         message: m instanceof Error ? m.message : "Deck compilation failed.",
         cause: m
       });
     }), () => {
       s = !0;
     };
-  }, [l, M, y]), U(() => {
-    if (!C || A)
+  }, [l, C, y]), U(() => {
+    if (!P || A)
       return;
-    const s = C.slides[0];
+    const s = P.slides[0];
     s && x(s.id);
-  }, [C, A]), U(() => {
+  }, [P, A]), U(() => {
     k != null && k.recoverOnMount && k.adapter.loadDraft({ deckId: n, namespace: k.namespace }).then((s) => {
-      !s || s.sourceHash === ee(y.content) || (x(s.selectedSlideId), W(s.source, "crash-recovery", s.selectedSlideId));
+      !s || s.sourceHash === te(y.content) || (x(s.selectedSlideId), W(s.source, "crash-recovery", s.selectedSlideId));
     }).catch((s) => {
       f == null || f({
         message: s instanceof Error ? s.message : "Unable to recover deck draft.",
@@ -1450,7 +1519,7 @@ function rn(e) {
       });
     });
   }, [n, f, W, y.content, k]), U(() => {
-    if (!k || !Z || !k.saveDraftOnChange)
+    if (!k || !q || !k.saveDraftOnChange)
       return;
     const s = window.setTimeout(() => {
       k.adapter.saveDraft({
@@ -1458,17 +1527,17 @@ function rn(e) {
         namespace: k.namespace,
         schemaVersion: 1,
         updatedAtIso: (/* @__PURE__ */ new Date()).toISOString(),
-        sessionId: Jt(),
+        sessionId: Qt(),
         source: y,
-        sourceHash: ee(y.content),
+        sourceHash: te(y.content),
         selectedSlideId: A,
-        compilerStatus: (v == null ? void 0 : v.status) ?? "invalid"
+        compilerStatus: (b == null ? void 0 : b.status) ?? "invalid"
       });
-    }, Z.draftDebounceMs);
+    }, q.draftDebounceMs);
     return () => window.clearTimeout(s);
-  }, [Z, v, n, A, y, k]);
-  const J = $(() => {
-    k && k.adapter.listVersions({ deckId: n, namespace: k.namespace }).then(Q).catch((s) => {
+  }, [q, b, n, A, y, k]);
+  const Q = _(() => {
+    k && k.adapter.listVersions({ deckId: n, namespace: k.namespace }).then(Z).catch((s) => {
       f == null || f({
         message: s instanceof Error ? s.message : "Unable to list deck versions.",
         cause: s
@@ -1476,15 +1545,15 @@ function rn(e) {
     });
   }, [n, f, k]);
   U(() => {
-    J();
-  }, [J]);
-  const z = $(
+    Q();
+  }, [Q]);
+  const z = _(
     async (s, m) => {
-      var re;
+      var oe;
       if (!k)
         return;
-      const _ = (v == null ? void 0 : v.diagnostics) ?? [], X = await k.adapter.createVersion({
-        id: Oe(),
+      const $ = (b == null ? void 0 : b.diagnostics) ?? [], X = await k.adapter.createVersion({
+        id: We(),
         deckId: n,
         namespace: k.namespace,
         schemaVersion: 1,
@@ -1492,34 +1561,34 @@ function rn(e) {
         label: m,
         reason: s,
         source: y,
-        sourceHash: ee(y.content),
+        sourceHash: te(y.content),
         selectedSlideId: A,
-        compilerStatus: (v == null ? void 0 : v.status) ?? "invalid",
-        diagnosticsSummary: Ze(_),
+        compilerStatus: (b == null ? void 0 : b.status) ?? "invalid",
+        diagnosticsSummary: qe($),
         limits: {
           maxVersionsPerDeck: k.maxVersionsPerDeck,
           maxAutosaveVersionsPerDeck: k.maxAutosaveVersionsPerDeck,
           maxBytesPerDeck: k.maxBytesPerDeck
         }
       });
-      X.status === "failed" && (f == null || f({ message: ((re = X.diagnostics[0]) == null ? void 0 : re.message) ?? "Unable to save deck version." })), J();
+      X.status === "failed" && (f == null || f({ message: ((oe = X.diagnostics[0]) == null ? void 0 : oe.message) ?? "Unable to save deck version." })), Q();
     },
-    [v, n, f, J, A, y, k]
-  ), ce = $(() => {
+    [b, n, f, Q, A, y, k]
+  ), ue = _(() => {
     k && (k.adapter.saveCurrent({
       deckId: n,
       namespace: k.namespace,
       schemaVersion: 1,
       updatedAtIso: (/* @__PURE__ */ new Date()).toISOString(),
       source: y,
-      sourceHash: ee(y.content),
+      sourceHash: te(y.content),
       selectedSlideId: A
-    }), k.createVersionOnManualSave && z("manual", "Manual save"), b == null || b({
+    }), k.createVersionOnManualSave && z("manual", "Manual save"), v == null || v({
       deckId: n,
-      sourceHash: ee(y.content),
+      sourceHash: te(y.content),
       createdAtIso: (/* @__PURE__ */ new Date()).toISOString()
     }));
-  }, [z, n, b, A, y, k]), V = $(
+  }, [z, n, v, A, y, k]), V = _(
     async (s) => {
       if (!k)
         return;
@@ -1537,13 +1606,13 @@ function rn(e) {
     },
     [z, n, g, W, k]
   );
-  function P(s) {
+  function M(s) {
     x(s), S == null || S({ deckId: n, slideId: s });
   }
-  function q(s, m) {
+  function ee(s, m) {
     W(s, m, I == null ? void 0 : I.id);
   }
-  const We = (v == null ? void 0 : v.diagnostics) ?? [], ae = j === "source" && !B.allowRawSourceEdit ? "form" : j;
+  const ze = (b == null ? void 0 : b.diagnostics) ?? [], re = j === "source" && !B.allowRawSourceEdit ? "form" : j, xe = (P == null ? void 0 : P.theme.cssClassName) ?? "";
   return /* @__PURE__ */ p(
     "div",
     {
@@ -1554,19 +1623,19 @@ function rn(e) {
       children: [
         T.showSlideRail ? /* @__PURE__ */ p("aside", { className: "deck-studio-rail", style: { width: T.slideRailWidthPx }, children: [
           /* @__PURE__ */ p("header", { children: [
-            /* @__PURE__ */ a("strong", { children: (C == null ? void 0 : C.metadata.title) ?? "Deck" }),
-            B.allowAddSlide ? /* @__PURE__ */ a("button", { type: "button", onClick: () => q(Ft(y), "slide-add"), disabled: c, children: "Add" }) : null
+            /* @__PURE__ */ i("strong", { children: (P == null ? void 0 : P.metadata.title) ?? "Deck" }),
+            B.allowAddSlide ? /* @__PURE__ */ i("button", { type: "button", onClick: () => ee(Bt(y), "slide-add"), disabled: c, children: "Add" }) : null
           ] }),
-          /* @__PURE__ */ a("nav", { "aria-label": "Slides", children: C == null ? void 0 : C.slides.map((s) => /* @__PURE__ */ p(
+          /* @__PURE__ */ i("nav", { "aria-label": "Slides", children: P == null ? void 0 : P.slides.map((s) => /* @__PURE__ */ p(
             "button",
             {
               type: "button",
               className: s.id === (I == null ? void 0 : I.id) ? "is-active" : void 0,
-              onClick: () => P(s.id),
+              onClick: () => M(s.id),
               children: [
-                /* @__PURE__ */ a("span", { children: s.index + 1 }),
-                /* @__PURE__ */ a("span", { children: s.id }),
-                /* @__PURE__ */ a("small", { children: s.layout.name })
+                /* @__PURE__ */ i("span", { children: s.index + 1 }),
+                /* @__PURE__ */ i("span", { children: s.id }),
+                /* @__PURE__ */ i("small", { children: s.layout.name })
               ]
             },
             s.id
@@ -1575,92 +1644,106 @@ function rn(e) {
         /* @__PURE__ */ p("main", { className: "deck-studio-main", children: [
           /* @__PURE__ */ p("header", { className: "deck-studio-header", children: [
             /* @__PURE__ */ p("div", { className: "deck-studio-slide-heading", children: [
-              /* @__PURE__ */ a("strong", { children: ae === "source" ? "Source" : (I == null ? void 0 : I.id) ?? "Source" }),
-              ae !== "source" && I ? /* @__PURE__ */ a("small", { children: I.layout.definition.displayName }) : null
+              /* @__PURE__ */ i("strong", { children: re === "source" ? "Source" : (I == null ? void 0 : I.id) ?? "Source" }),
+              re !== "source" && I ? /* @__PURE__ */ i("small", { children: I.layout.definition.displayName }) : null
             ] }),
             /* @__PURE__ */ p("div", { className: "deck-studio-actions", children: [
               T.showSourceModeToggle ? /* @__PURE__ */ p("label", { className: "deck-view-mode-select", children: [
-                /* @__PURE__ */ a("span", { children: "Editor view" }),
+                /* @__PURE__ */ i("span", { children: "Editor view" }),
                 /* @__PURE__ */ p(
                   "select",
                   {
                     value: j,
-                    onChange: (s) => we(s.currentTarget.value),
+                    onChange: (s) => ke(s.currentTarget.value),
                     children: [
-                      /* @__PURE__ */ a("option", { value: "form", children: "Form" }),
-                      B.allowRawSourceEdit ? /* @__PURE__ */ a("option", { value: "source", children: "YAML" }) : null,
-                      /* @__PURE__ */ a("option", { value: "preview", children: "Preview" })
+                      /* @__PURE__ */ i("option", { value: "form", children: "Form" }),
+                      B.allowRawSourceEdit ? /* @__PURE__ */ i("option", { value: "source", children: "YAML" }) : null,
+                      /* @__PURE__ */ i("option", { value: "preview", children: "Preview" })
                     ]
                   }
                 )
               ] }) : null,
-              B.allowDuplicateSlide && I ? /* @__PURE__ */ a(
+              B.allowDuplicateSlide && I ? /* @__PURE__ */ i(
                 "button",
                 {
                   type: "button",
-                  onClick: () => q(Bt(y, I.id), "slide-duplicate"),
+                  onClick: () => ee(Ut(y, I.id), "slide-duplicate"),
                   disabled: c,
                   children: "Duplicate"
                 }
               ) : null,
-              B.allowDeleteSlide && I ? /* @__PURE__ */ a(
+              B.allowDeleteSlide && I ? /* @__PURE__ */ i(
                 "button",
                 {
                   type: "button",
-                  onClick: () => q(Ut(y, I.id), "slide-delete"),
-                  disabled: c || ((C == null ? void 0 : C.slides.length) ?? 0) <= 1,
+                  onClick: () => ee(Kt(y, I.id), "slide-delete"),
+                  disabled: c || ((P == null ? void 0 : P.slides.length) ?? 0) <= 1,
                   children: "Delete"
                 }
               ) : null,
-              k ? /* @__PURE__ */ a("button", { type: "button", onClick: ce, disabled: c, children: "Save" }) : null
+              k ? /* @__PURE__ */ i("button", { type: "button", onClick: ue, disabled: c, children: "Save" }) : null
             ] })
           ] }),
-          ae === "source" ? /* @__PURE__ */ a(
+          re === "source" ? /* @__PURE__ */ i(
             "textarea",
             {
               className: "deck-source-editor",
               value: y.content,
-              onChange: (s) => q({ ...y, content: s.currentTarget.value }, "raw-source-edit"),
+              onChange: (s) => ee({ ...y, content: s.currentTarget.value }, "raw-source-edit"),
               spellCheck: !1,
               readOnly: c
             }
-          ) : ae === "preview" && I ? /* @__PURE__ */ a("section", { className: "deck-studio-preview deck-studio-preview-main", "aria-label": "Slide preview", children: /* @__PURE__ */ a(he, { slide: I, target: "screen" }) }) : I ? /* @__PURE__ */ p("div", { className: "deck-studio-editor", children: [
-            /* @__PURE__ */ a(
-              Wt,
+          ) : re === "preview" && I ? /* @__PURE__ */ i(
+            "section",
+            {
+              className: `deck-studio-preview deck-studio-preview-main ${xe}`,
+              "aria-label": "Slide preview",
+              children: /* @__PURE__ */ i(ge, { slide: I, target: "screen" })
+            }
+          ) : I ? /* @__PURE__ */ p("div", { className: "deck-studio-editor", children: [
+            /* @__PURE__ */ i(
+              zt,
               {
                 source: y,
                 slideId: I.id,
                 fields: I.layout.definition.editor.fieldGroups.flatMap((s) => s.fields),
                 readOnly: !!c,
-                onUpdate: q
+                onUpdate: ee
               }
             ),
             B.allowLayoutChange ? /* @__PURE__ */ p("label", { className: "deck-form-field", children: [
-              /* @__PURE__ */ a("span", { children: "Layout" }),
-              /* @__PURE__ */ a(
+              /* @__PURE__ */ i("span", { children: "Layout" }),
+              /* @__PURE__ */ i(
                 "select",
                 {
                   value: I.layout.name,
                   onChange: (s) => {
-                    k != null && k.createVersionBeforeDestructiveAction && z("before-layout-change", "Before layout change"), q(Ht(y, I.id, s.currentTarget.value), "layout-change");
+                    k != null && k.createVersionBeforeDestructiveAction && z("before-layout-change", "Before layout change"), ee(Ft(y, I.id, s.currentTarget.value), "layout-change");
                   },
                   disabled: c,
-                  children: Array.from(M.layouts.values()).map((s) => /* @__PURE__ */ a("option", { value: s.name, children: s.displayName }, s.name))
+                  children: Array.from(C.layouts.values()).map((s) => /* @__PURE__ */ i("option", { value: s.name, children: s.displayName }, s.name))
                 }
               )
             ] }) : null
-          ] }) : (v == null ? void 0 : v.status) === "invalid" ? /* @__PURE__ */ a(Ge, { fallback: v.fallback }) : null,
-          T.showActiveSlidePreview && ae !== "preview" && I ? /* @__PURE__ */ a("section", { className: "deck-studio-preview", "aria-label": "Active slide preview", children: /* @__PURE__ */ a(he, { slide: I, target: "screen" }) }) : null
+          ] }) : (b == null ? void 0 : b.status) === "invalid" ? /* @__PURE__ */ i(Je, { fallback: b.fallback }) : null,
+          T.showActiveSlidePreview && re !== "preview" && I ? /* @__PURE__ */ i(
+            "section",
+            {
+              className: `deck-studio-preview ${xe}`,
+              "aria-label": "Active slide preview",
+              children: /* @__PURE__ */ i(ge, { slide: I, target: "screen" })
+            }
+          ) : null
         ] }),
         T.showInspector ? /* @__PURE__ */ p("aside", { className: "deck-studio-inspector", style: { width: T.inspectorWidthPx }, children: [
           T.showDiagnosticsPanel ? /* @__PURE__ */ p("section", { children: [
-            /* @__PURE__ */ a("h3", { children: "Diagnostics" }),
-            /* @__PURE__ */ a($e, { diagnostics: We })
+            /* @__PURE__ */ i("h3", { children: "Diagnostics" }),
+            /* @__PURE__ */ i(He, { diagnostics: ze })
           ] }) : null,
           T.showVersionHistory && k ? /* @__PURE__ */ p("section", { children: [
-            /* @__PURE__ */ a("h3", { children: "Versions" }),
-            /* @__PURE__ */ a("ul", { className: "deck-version-list", children: ke.map((s) => /* @__PURE__ */ p("li", { children: [
-              /* @__PURE__ */ a(
+            /* @__PURE__ */ i("h3", { children: "Versions" }),
+            /* @__PURE__ */ i("ul", { className: "deck-version-list", children: pe.map((s) => /* @__PURE__ */ p("li", { children: [
+              /* @__PURE__ */ i(
                 "button",
                 {
                   type: "button",
@@ -1669,7 +1752,7 @@ function rn(e) {
                   children: s.label ?? s.reason
                 }
               ),
-              /* @__PURE__ */ a("small", { children: new Date(s.createdAtIso).toLocaleString() })
+              /* @__PURE__ */ i("small", { children: new Date(s.createdAtIso).toLocaleString() })
             ] }, s.id)) })
           ] }) : null
         ] }) : null
@@ -1677,49 +1760,49 @@ function rn(e) {
     }
   );
 }
-function Wt({
+function zt({
   source: e,
   slideId: t,
   fields: n,
-  readOnly: i,
+  readOnly: a,
   onUpdate: r
 }) {
-  return /* @__PURE__ */ a("form", { className: "deck-slide-form", children: n.map((o) => /* @__PURE__ */ a(
-    zt,
+  return /* @__PURE__ */ i("form", { className: "deck-slide-form", children: n.map((o) => /* @__PURE__ */ i(
+    Yt,
     {
       source: e,
       slideId: t,
       field: o,
-      readOnly: i,
+      readOnly: a,
       onUpdate: r
     },
     `${o.kind}-${"slotName" in o ? o.slotName : o.label}`
   )) });
 }
-function zt({
+function Yt({
   source: e,
   slideId: t,
   field: n,
-  readOnly: i,
+  readOnly: a,
   onUpdate: r
 }) {
   if (n.kind === "markdown") {
-    const o = n.blockKind === "heading" || n.slotName === "title", l = Kt(e, t, n.slotName), d = o || Yt(n), w = d ? Gt(l, o) : l;
+    const o = n.blockKind === "heading" || n.slotName === "title", l = jt(e, t, n.slotName), d = o || Gt(n), w = d ? Jt(l, o) : l;
     return /* @__PURE__ */ p("label", { className: "deck-form-field", children: [
-      /* @__PURE__ */ a("span", { children: n.label }),
-      d ? /* @__PURE__ */ a(
+      /* @__PURE__ */ i("span", { children: n.label }),
+      d ? /* @__PURE__ */ i(
         "input",
         {
           className: "deck-form-input",
           placeholder: " ",
           value: w,
           onChange: (N) => r(
-            Te(e, t, n.slotName, N.currentTarget.value),
+            Ve(e, t, n.slotName, N.currentTarget.value),
             "slide-field-edit"
           ),
-          readOnly: i
+          readOnly: a
         }
-      ) : /* @__PURE__ */ a(
+      ) : /* @__PURE__ */ i(
         "textarea",
         {
           className: "deck-form-textarea",
@@ -1727,21 +1810,21 @@ function zt({
           rows: n.minRows ?? 4,
           value: w,
           onChange: (N) => r(
-            Te(e, t, n.slotName, N.currentTarget.value),
+            Ve(e, t, n.slotName, N.currentTarget.value),
             "slide-field-edit"
           ),
-          readOnly: i
+          readOnly: a
         }
       )
     ] });
   }
   if (n.kind === "image") {
-    const o = jt(e, t, n.slotName);
+    const o = Ot(e, t, n.slotName);
     return /* @__PURE__ */ p("fieldset", { className: "deck-form-fieldset", children: [
-      /* @__PURE__ */ a("legend", { children: n.label }),
+      /* @__PURE__ */ i("legend", { children: n.label }),
       /* @__PURE__ */ p("label", { className: "deck-form-field", children: [
-        /* @__PURE__ */ a("span", { children: "Asset id" }),
-        /* @__PURE__ */ a(
+        /* @__PURE__ */ i("span", { children: "Asset id" }),
+        /* @__PURE__ */ i(
           "input",
           {
             placeholder: " ",
@@ -1753,13 +1836,13 @@ function zt({
               }),
               "slide-field-edit"
             ),
-            readOnly: i
+            readOnly: a
           }
         )
       ] }),
       /* @__PURE__ */ p("label", { className: "deck-form-field", children: [
-        /* @__PURE__ */ a("span", { children: "Source" }),
-        /* @__PURE__ */ a(
+        /* @__PURE__ */ i("span", { children: "Source" }),
+        /* @__PURE__ */ i(
           "input",
           {
             placeholder: " ",
@@ -1771,13 +1854,13 @@ function zt({
               }),
               "slide-field-edit"
             ),
-            readOnly: i
+            readOnly: a
           }
         )
       ] }),
       /* @__PURE__ */ p("label", { className: "deck-form-field", children: [
-        /* @__PURE__ */ a("span", { children: "Alt" }),
-        /* @__PURE__ */ a(
+        /* @__PURE__ */ i("span", { children: "Alt" }),
+        /* @__PURE__ */ i(
           "input",
           {
             placeholder: " ",
@@ -1789,7 +1872,7 @@ function zt({
               }),
               "slide-field-edit"
             ),
-            readOnly: i
+            readOnly: a
           }
         )
       ] })
@@ -1797,30 +1880,30 @@ function zt({
   }
   return null;
 }
-function Yt(e) {
+function Gt(e) {
   return e.kind !== "markdown" ? !1 : e.minRows === 1 || e.slotName === "eyebrow" || e.slotName === "subtitle" || e.slotName === "footer";
 }
-function Gt(e, t) {
+function Jt(e, t) {
   return (t ? e.replace(/^(\s*)#{1,6}\s+/u, "$1") : e).replace(/\s*\n\s*/gu, " ").trim();
 }
-function Jt() {
+function Qt() {
   const e = "deck-runtime-session-id", t = window.sessionStorage.getItem(e);
   if (t)
     return t;
-  const n = Oe();
+  const n = We();
   return window.sessionStorage.setItem(e, n), n;
 }
-function Oe() {
+function We() {
   const e = Math.random().toString(16).slice(2, 10);
   return `${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}_${e}`;
 }
 export {
-  Ge as DebugDeckFallback,
-  tn as DeckPresentationOverlay,
-  an as DeckShow,
-  rn as DeckStudio,
-  nn as PrintDeck,
-  at as compileDeck,
-  Rt as createDeckRuntime,
-  Lt as defaultDeckRuntime
+  Je as DebugDeckFallback,
+  nn as DeckPresentationOverlay,
+  rn as DeckShow,
+  on as DeckStudio,
+  an as PrintDeck,
+  rt as compileDeck,
+  Lt as createDeckRuntime,
+  Et as defaultDeckRuntime
 };
