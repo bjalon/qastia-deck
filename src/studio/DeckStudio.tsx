@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { compileDeck } from "../compiler/compileDeck";
 import { summarizeDiagnostics } from "../compiler/diagnostics";
 import { hashSource } from "../compiler/hash";
@@ -33,6 +33,23 @@ import {
 } from "./editableSource";
 
 export function DeckStudio(props: DeckStudioProps): React.ReactElement {
+  const {
+    autosave,
+    deckId,
+    features: featuresProps,
+    initialSelectedSlideId,
+    layout: layoutProps,
+    locale = "fr-FR",
+    namespace,
+    onChange,
+    onCompile,
+    onError,
+    onRestoreVersion,
+    onSave,
+    onSelectedSlideChange,
+    readOnly,
+    storage,
+  } = props;
   const runtime = props.runtime ?? defaultDeckRuntime;
   const controlled = props.mode === "controlled";
   const [internalSource, setInternalSource] = useState<DeckSource>(
@@ -41,24 +58,40 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const source = controlled ? props.value : internalSource;
   const [compileResult, setCompileResult] = useState<CompileDeckResult | null>(null);
   const [selectedSlideId, setSelectedSlideId] = useState<string | undefined>(
-    props.initialSelectedSlideId,
+    initialSelectedSlideId,
   );
   const [sourceMode, setSourceMode] = useState(false);
   const [versions, setVersions] = useState<readonly DeckVersionSummary[]>([]);
+  const onCompileRef = useRef(onCompile);
+  const onErrorRef = useRef(onError);
 
-  const layoutOptions = { ...defaultDeckStudioLayoutOptions, ...props.layout };
-  const features = { ...defaultDeckStudioFeatureFlags, ...props.features };
-  const storageConfig =
-    props.storage === false
-      ? undefined
-      : {
+  onCompileRef.current = onCompile;
+  onErrorRef.current = onError;
+
+  const layoutOptions = useMemo(
+    () => ({ ...defaultDeckStudioLayoutOptions, ...layoutProps }),
+    [layoutProps],
+  );
+  const features = useMemo(
+    () => ({ ...defaultDeckStudioFeatureFlags, ...featuresProps }),
+    [featuresProps],
+  );
+  const storageConfig = useMemo(
+    () =>
+      storage === false
+        ? undefined
+        : {
           ...defaultDeckStorageConfig,
-          namespace: props.namespace ?? props.storage?.namespace ?? defaultDeckStorageConfig.namespace,
-          adapter: props.storage?.adapter ?? runtime.storage ?? defaultDeckStorageConfig.adapter,
-          ...props.storage,
-        };
-  const autosaveConfig =
-    props.autosave === false ? undefined : { ...defaultDeckAutosaveConfig, ...props.autosave };
+            namespace: namespace ?? storage?.namespace ?? defaultDeckStorageConfig.namespace,
+            adapter: storage?.adapter ?? runtime.storage ?? defaultDeckStorageConfig.adapter,
+            ...storage,
+          },
+    [namespace, runtime.storage, storage],
+  );
+  const autosaveConfig = useMemo(
+    () => (autosave === false ? undefined : { ...defaultDeckAutosaveConfig, ...autosave }),
+    [autosave],
+  );
 
   const compiledDeck = compileResult?.status === "valid" || compileResult?.status === "degraded"
     ? compileResult.deck
@@ -69,7 +102,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     (nextSource: DeckSource, reason: DeckSourceChangeReason, nextSelectedSlideId?: string): void => {
       const event: DeckSourceChangeEvent = {
         reason,
-        deckId: props.deckId,
+        deckId,
         selectedSlideId: nextSelectedSlideId ?? selectedSlideId,
         sourceHash: hashSource(nextSource.content),
         createdAtIso: new Date().toISOString(),
@@ -78,9 +111,9 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       if (!controlled) {
         setInternalSource(nextSource);
       }
-      props.onChange?.(nextSource, event);
+      onChange?.(nextSource, event);
     },
-    [controlled, props, selectedSlideId],
+    [controlled, deckId, onChange, selectedSlideId],
   );
 
   useEffect(() => {
@@ -89,17 +122,17 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     compileDeck(source, {
       runtime,
       mode: "editor",
-      locale: props.locale ?? "fr-FR",
+      locale,
     })
       .then((result) => {
         if (cancelled) {
           return;
         }
         setCompileResult(result);
-        props.onCompile?.(result);
+        onCompileRef.current?.(result);
       })
       .catch((error: unknown) => {
-        props.onError?.({
+        onErrorRef.current?.({
           message: error instanceof Error ? error.message : "Deck compilation failed.",
           cause: error,
         });
@@ -108,7 +141,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     return () => {
       cancelled = true;
     };
-  }, [props, runtime, source]);
+  }, [locale, runtime, source]);
 
   useEffect(() => {
     if (!compiledDeck || selectedSlideId) {
@@ -127,7 +160,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     }
 
     storageConfig.adapter
-      .loadDraft({ deckId: props.deckId, namespace: storageConfig.namespace })
+      .loadDraft({ deckId, namespace: storageConfig.namespace })
       .then((draft) => {
         if (!draft || draft.sourceHash === hashSource(source.content)) {
           return;
@@ -136,12 +169,12 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
         publishSource(draft.source, "crash-recovery", draft.selectedSlideId);
       })
       .catch((error: unknown) => {
-        props.onError?.({
+        onError?.({
           message: error instanceof Error ? error.message : "Unable to recover deck draft.",
           cause: error,
         });
       });
-  }, []);
+  }, [deckId, onError, publishSource, source.content, storageConfig]);
 
   useEffect(() => {
     if (!storageConfig || !autosaveConfig || !storageConfig.saveDraftOnChange) {
@@ -150,7 +183,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
 
     const timeoutId = window.setTimeout(() => {
       void storageConfig.adapter.saveDraft({
-        deckId: props.deckId,
+        deckId,
         namespace: storageConfig.namespace,
         schemaVersion: 1,
         updatedAtIso: new Date().toISOString(),
@@ -163,7 +196,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     }, autosaveConfig.draftDebounceMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [autosaveConfig, compileResult, props.deckId, selectedSlideId, source, storageConfig]);
+  }, [autosaveConfig, compileResult, deckId, selectedSlideId, source, storageConfig]);
 
   const refreshVersions = useCallback((): void => {
     if (!storageConfig) {
@@ -171,15 +204,15 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     }
 
     storageConfig.adapter
-      .listVersions({ deckId: props.deckId, namespace: storageConfig.namespace })
+      .listVersions({ deckId, namespace: storageConfig.namespace })
       .then(setVersions)
       .catch((error: unknown) => {
-        props.onError?.({
+        onError?.({
           message: error instanceof Error ? error.message : "Unable to list deck versions.",
           cause: error,
         });
       });
-  }, [props, storageConfig]);
+  }, [deckId, onError, storageConfig]);
 
   useEffect(() => {
     refreshVersions();
@@ -194,7 +227,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       const diagnostics = compileResult?.diagnostics ?? [];
       const result = await storageConfig.adapter.createVersion({
         id: createVersionId(),
-        deckId: props.deckId,
+        deckId,
         namespace: storageConfig.namespace,
         schemaVersion: 1,
         createdAtIso: new Date().toISOString(),
@@ -213,11 +246,11 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       });
 
       if (result.status === "failed") {
-        props.onError?.({ message: result.diagnostics[0]?.message ?? "Unable to save deck version." });
+        onError?.({ message: result.diagnostics[0]?.message ?? "Unable to save deck version." });
       }
       refreshVersions();
     },
-    [compileResult, props, refreshVersions, selectedSlideId, source, storageConfig],
+    [compileResult, deckId, onError, refreshVersions, selectedSlideId, source, storageConfig],
   );
 
   const handleManualSave = useCallback((): void => {
@@ -226,7 +259,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     }
 
     void storageConfig.adapter.saveCurrent({
-      deckId: props.deckId,
+      deckId,
       namespace: storageConfig.namespace,
       schemaVersion: 1,
       updatedAtIso: new Date().toISOString(),
@@ -239,12 +272,12 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       void createVersion("manual", "Manual save");
     }
 
-    props.onSave?.({
-      deckId: props.deckId,
+    onSave?.({
+      deckId,
       sourceHash: hashSource(source.content),
       createdAtIso: new Date().toISOString(),
     });
-  }, [createVersion, props, selectedSlideId, source, storageConfig]);
+  }, [createVersion, deckId, onSave, selectedSlideId, source, storageConfig]);
 
   const restoreVersion = useCallback(
     async (versionId: string): Promise<void> => {
@@ -257,7 +290,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       }
 
       const version = await storageConfig.adapter.loadVersion({
-        deckId: props.deckId,
+        deckId,
         namespace: storageConfig.namespace,
         versionId,
       });
@@ -268,18 +301,18 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
 
       setSelectedSlideId(version.selectedSlideId);
       publishSource(version.source, "version-restore", version.selectedSlideId);
-      props.onRestoreVersion?.({
-        deckId: props.deckId,
+      onRestoreVersion?.({
+        deckId,
         versionId,
         createdAtIso: new Date().toISOString(),
       });
     },
-    [createVersion, props, publishSource, storageConfig],
+    [createVersion, deckId, onRestoreVersion, publishSource, storageConfig],
   );
 
   function selectSlide(slideId: string): void {
     setSelectedSlideId(slideId);
-    props.onSelectedSlideChange?.({ deckId: props.deckId, slideId });
+    onSelectedSlideChange?.({ deckId, slideId });
   }
 
   function updateSource(nextSource: DeckSource, reason: DeckSourceChangeReason): void {
@@ -294,7 +327,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
         <header>
           <strong>{compiledDeck?.metadata.title ?? "Deck"}</strong>
           {features.allowAddSlide ? (
-            <button type="button" onClick={() => updateSource(addSlide(source), "slide-add")} disabled={props.readOnly}>
+            <button type="button" onClick={() => updateSource(addSlide(source), "slide-add")} disabled={readOnly}>
               Add
             </button>
           ) : null}
@@ -331,7 +364,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               <button
                 type="button"
                 onClick={() => updateSource(duplicateSlide(source, selectedSlide.id), "slide-duplicate")}
-                disabled={props.readOnly}
+                disabled={readOnly}
               >
                 Duplicate
               </button>
@@ -340,13 +373,13 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               <button
                 type="button"
                 onClick={() => updateSource(deleteSlide(source, selectedSlide.id), "slide-delete")}
-                disabled={props.readOnly || (compiledDeck?.slides.length ?? 0) <= 1}
+                disabled={readOnly || (compiledDeck?.slides.length ?? 0) <= 1}
               >
                 Delete
               </button>
             ) : null}
             {storageConfig ? (
-              <button type="button" onClick={handleManualSave} disabled={props.readOnly}>
+              <button type="button" onClick={handleManualSave} disabled={readOnly}>
                 Save
               </button>
             ) : null}
@@ -361,7 +394,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               updateSource({ ...source, content: event.currentTarget.value }, "raw-source-edit")
             }
             spellCheck={false}
-            readOnly={props.readOnly}
+            readOnly={readOnly}
           />
         ) : selectedSlide ? (
           <div className="deck-studio-editor">
@@ -369,7 +402,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               source={source}
               slideId={selectedSlide.id}
               fields={selectedSlide.layout.definition.editor.fieldGroups.flatMap((group) => group.fields)}
-              readOnly={Boolean(props.readOnly)}
+              readOnly={Boolean(readOnly)}
               onUpdate={updateSource}
             />
             {features.allowLayoutChange ? (
@@ -383,7 +416,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
                     }
                     updateSource(updateSlideLayout(source, selectedSlide.id, event.currentTarget.value), "layout-change");
                   }}
-                  disabled={props.readOnly}
+                  disabled={readOnly}
                 >
                   {Array.from(runtime.layouts.values()).map((layout) => (
                     <option key={layout.name} value={layout.name}>
@@ -422,7 +455,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
                     <button
                       type="button"
                       onClick={() => void restoreVersion(version.id)}
-                      disabled={!features.allowVersionRestore || props.readOnly}
+                      disabled={!features.allowVersionRestore || readOnly}
                     >
                       {version.label ?? version.reason}
                     </button>

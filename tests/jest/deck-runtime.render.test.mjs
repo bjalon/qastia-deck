@@ -106,6 +106,46 @@ describe("deck-runtime public rendering", () => {
     expect(screen.getByLabelText("Subtitle")).toHaveValue("Runtime preview\n");
   });
 
+  it("does not recompile DeckStudio only because integration props are recreated", async () => {
+    const onCompile = jest.fn();
+
+    function IntegratedHarness() {
+      const [, setCompileStatus] = React.useState("pending");
+
+      return React.createElement(DeckStudio, {
+        mode: "controlled",
+        deckId: "loop-guard",
+        value: source,
+        onChange: () => undefined,
+        storage: false,
+        layout: {
+          showInspector: true,
+          showVersionHistory: false,
+          showActiveSlidePreview: false,
+        },
+        features: {
+          allowPdfExport: false,
+        },
+        onCompile: (result) => {
+          onCompile(result.status);
+          setCompileStatus(result.status);
+        },
+      });
+    }
+
+    render(React.createElement(IntegratedHarness));
+
+    await waitFor(() => {
+      expect(onCompile).toHaveBeenCalledTimes(1);
+    });
+
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 50);
+    });
+
+    expect(onCompile).toHaveBeenCalledTimes(1);
+  });
+
   it("matches the stable DeckShow DOM snapshot", async () => {
     const deck = await compileValidDeck();
     const { container } = render(React.createElement(DeckShow, { deck, mode: "embedded" }));
