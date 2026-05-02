@@ -4,6 +4,7 @@ exports[`deck-runtime public rendering matches the stable DeckShow DOM snapshot 
 <div
   class="deck-screen-root deck-theme-fintech-light"
   data-mode="embedded"
+  tabindex="0"
 >
   <div
     aria-label="Deck navigation"
@@ -41,8 +42,10 @@ exports[`deck-runtime public rendering matches the stable DeckShow DOM snapshot 
         class="deck-cover-copy"
       >
         <div
-          class="deck-cover-title"
+          class="deck-title-slot deck-cover-title"
           data-slot="title"
+          data-title-size="short"
+          data-title-variant="cover"
         >
           <div
             class="deck-markdown"

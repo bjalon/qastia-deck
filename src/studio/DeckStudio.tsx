@@ -32,6 +32,8 @@ import {
   updateSlideLayout,
 } from "./editableSource";
 
+type DeckStudioViewMode = "form" | "source" | "preview";
+
 export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const {
     autosave,
@@ -61,7 +63,9 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const [selectedSlideId, setSelectedSlideId] = useState<string | undefined>(
     initialSelectedSlideId,
   );
-  const [sourceMode, setSourceMode] = useState(studioOptions?.editing?.defaultMode === "source");
+  const [viewMode, setViewMode] = useState<DeckStudioViewMode>(
+    studioOptions?.editing?.defaultMode === "source" ? "source" : "form",
+  );
   const [versions, setVersions] = useState<readonly DeckVersionSummary[]>([]);
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
@@ -383,6 +387,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   }
 
   const diagnostics = compileResult?.diagnostics ?? [];
+  const effectiveViewMode = viewMode === "source" && !features.allowRawSourceEdit ? "form" : viewMode;
 
   return (
     <div
@@ -420,15 +425,25 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
 
       <main className="deck-studio-main">
         <header className="deck-studio-header">
-          <div>
-            <strong>{selectedSlide?.id ?? "Source"}</strong>
-            {selectedSlide ? <small>{selectedSlide.layout.definition.displayName}</small> : null}
+          <div className="deck-studio-slide-heading">
+            <strong>{effectiveViewMode === "source" ? "Source" : selectedSlide?.id ?? "Source"}</strong>
+            {effectiveViewMode !== "source" && selectedSlide ? (
+              <small>{selectedSlide.layout.definition.displayName}</small>
+            ) : null}
           </div>
           <div className="deck-studio-actions">
-            {layoutOptions.showSourceModeToggle && features.allowRawSourceEdit ? (
-              <button type="button" onClick={() => setSourceMode((value) => !value)}>
-                {sourceMode ? "Form" : "YAML"}
-              </button>
+            {layoutOptions.showSourceModeToggle ? (
+              <label className="deck-view-mode-select">
+                <span>Editor view</span>
+                <select
+                  value={viewMode}
+                  onChange={(event) => setViewMode(event.currentTarget.value as DeckStudioViewMode)}
+                >
+                  <option value="form">Form</option>
+                  {features.allowRawSourceEdit ? <option value="source">YAML</option> : null}
+                  <option value="preview">Preview</option>
+                </select>
+              </label>
             ) : null}
             {features.allowDuplicateSlide && selectedSlide ? (
               <button
@@ -456,7 +471,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           </div>
         </header>
 
-        {sourceMode ? (
+        {effectiveViewMode === "source" ? (
           <textarea
             className="deck-source-editor"
             value={source.content}
@@ -466,6 +481,10 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             spellCheck={false}
             readOnly={readOnly}
           />
+        ) : effectiveViewMode === "preview" && selectedSlide ? (
+          <section className="deck-studio-preview deck-studio-preview-main" aria-label="Slide preview">
+            <SlideRenderer slide={selectedSlide} target="screen" />
+          </section>
         ) : selectedSlide ? (
           <div className="deck-studio-editor">
             <SlideForm
@@ -501,7 +520,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           <DebugDeckFallback fallback={compileResult.fallback} />
         ) : null}
 
-        {layoutOptions.showActiveSlidePreview && selectedSlide ? (
+        {layoutOptions.showActiveSlidePreview && effectiveViewMode !== "preview" && selectedSlide ? (
           <section className="deck-studio-preview" aria-label="Active slide preview">
             <SlideRenderer slide={selectedSlide} target="screen" />
           </section>
@@ -584,17 +603,44 @@ function EditorField({
   readonly onUpdate: (nextSource: DeckSource, reason: DeckSourceChangeReason) => void;
 }): React.ReactElement | null {
   if (field.kind === "markdown") {
+    const isHeadingField = field.blockKind === "heading" || field.slotName === "title";
+    const markdown = getSlotMarkdown(source, slideId, field.slotName);
+    const isSingleLineField = isHeadingField || isSingleLineMarkdownField(field);
+    const value = isSingleLineField
+      ? singleLineMarkdownValue(markdown, isHeadingField)
+      : markdown;
+
     return (
       <label className="deck-form-field">
         <span>{field.label}</span>
-        <textarea
-          rows={field.minRows ?? 4}
-          value={getSlotMarkdown(source, slideId, field.slotName)}
-          onChange={(event) =>
-            onUpdate(updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value), "slide-field-edit")
-          }
-          readOnly={readOnly}
-        />
+        {isSingleLineField ? (
+          <input
+            className="deck-form-input"
+            placeholder=" "
+            value={value}
+            onChange={(event) =>
+              onUpdate(
+                updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
+                "slide-field-edit",
+              )
+            }
+            readOnly={readOnly}
+          />
+        ) : (
+          <textarea
+            className="deck-form-textarea"
+            placeholder=" "
+            rows={field.minRows ?? 4}
+            value={value}
+            onChange={(event) =>
+              onUpdate(
+                updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
+                "slide-field-edit",
+              )
+            }
+            readOnly={readOnly}
+          />
+        )}
       </label>
     );
   }
@@ -604,9 +650,10 @@ function EditorField({
     return (
       <fieldset className="deck-form-fieldset">
         <legend>{field.label}</legend>
-        <label>
+        <label className="deck-form-field">
           <span>Asset id</span>
           <input
+            placeholder=" "
             value={image.assetId}
             onChange={(event) =>
               onUpdate(
@@ -620,9 +667,10 @@ function EditorField({
             readOnly={readOnly}
           />
         </label>
-        <label>
+        <label className="deck-form-field">
           <span>Source</span>
           <input
+            placeholder=" "
             value={image.src}
             onChange={(event) =>
               onUpdate(
@@ -636,9 +684,10 @@ function EditorField({
             readOnly={readOnly}
           />
         </label>
-        <label>
+        <label className="deck-form-field">
           <span>Alt</span>
           <input
+            placeholder=" "
             value={image.alt}
             onChange={(event) =>
               onUpdate(
@@ -657,6 +706,29 @@ function EditorField({
   }
 
   return null;
+}
+
+function isSingleLineMarkdownField(field: LayoutEditorField): boolean {
+  if (field.kind !== "markdown") {
+    return false;
+  }
+
+  return (
+    field.minRows === 1 ||
+    field.slotName === "eyebrow" ||
+    field.slotName === "subtitle" ||
+    field.slotName === "footer"
+  );
+}
+
+function singleLineMarkdownValue(markdown: string, stripHeading: boolean): string {
+  const nextMarkdown = stripHeading
+    ? markdown.replace(/^(\s*)#{1,6}\s+/u, "$1")
+    : markdown;
+
+  return nextMarkdown
+    .replace(/\s*\n\s*/gu, " ")
+    .trim();
 }
 
 function sessionId(): string {

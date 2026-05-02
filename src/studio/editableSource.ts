@@ -86,7 +86,7 @@ export function addSlide(source: DeckSource, layout: LayoutName = "title-body"):
     id,
     layout,
     slots: {
-      title: { markdown: "## New slide" },
+      title: { markdown: "New slide" },
       body: { markdown: "" },
     },
   });

@@ -88,6 +88,67 @@ describe("deck-runtime public rendering", () => {
     });
   });
 
+  it("does not let an embedded DeckShow steal arrow keys from editing fields", async () => {
+    const deck = await compileValidDeck();
+
+    function EmbeddedHarness() {
+      return React.createElement(
+        "div",
+        null,
+        React.createElement("input", { "aria-label": "Host field", defaultValue: "editing" }),
+        React.createElement(DeckShow, { deck, mode: "embedded" }),
+      );
+    }
+
+    const { container } = render(React.createElement(EmbeddedHarness));
+    const hostField = screen.getByLabelText("Host field");
+
+    fireEvent.keyDown(hostField, { key: "ArrowRight" });
+
+    expect(screen.getByText("Stable title")).toBeInTheDocument();
+
+    const viewer = container.querySelector(".deck-screen-root");
+    fireEvent.keyDown(viewer, { key: "ArrowRight" });
+
+    expect(screen.getByText("Details")).toBeInTheDocument();
+  });
+
+  it("can disable DeckShow keyboard navigation explicitly", async () => {
+    const deck = await compileValidDeck();
+
+    render(
+      React.createElement(DeckShow, {
+        deck,
+        mode: "viewer",
+        keyboardNavigation: false,
+      }),
+    );
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+
+    expect(screen.getByText("Stable title")).toBeInTheDocument();
+  });
+
+  it("renders title slots as titles without requiring markdown heading markers", async () => {
+    const plainTitleSource = {
+      content: source.content.replace("# Stable title", "A long stable title that adapts to the slide width automatically"),
+    };
+    const result = await compileDeck(plainTitleSource, {
+      runtime: defaultDeckRuntime,
+      mode: "viewer",
+      locale: "fr-FR",
+    });
+
+    if (result.status === "invalid") {
+      throw new Error("Expected a renderable deck.");
+    }
+
+    render(React.createElement(DeckShow, { deck: result.deck, mode: "embedded", controls: false }));
+
+    const title = screen.getByText("A long stable title that adapts to the slide width automatically");
+    expect(title.closest(".deck-title-slot")).toHaveAttribute("data-title-size", "long");
+  });
+
   it("requests presentation from DeckShow without owning the overlay", async () => {
     const deck = await compileValidDeck();
     const onRequestPresentation = jest.fn();
@@ -157,6 +218,63 @@ describe("deck-runtime public rendering", () => {
     });
   });
 
+  it("keeps browser fullscreen open when navigating with arrow keys", async () => {
+    const deck = await compileValidDeck();
+    let fullscreenElement = null;
+    const originalRequestFullscreen = HTMLElement.prototype.requestFullscreen;
+    const originalExitFullscreen = document.exitFullscreen;
+    const fullscreenDescriptor = Object.getOwnPropertyDescriptor(document, "fullscreenElement");
+    const requestFullscreen = jest.fn(function requestFullscreenMock() {
+      fullscreenElement = this;
+      return Promise.resolve();
+    });
+    const exitFullscreen = jest.fn(() => {
+      fullscreenElement = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+      return Promise.resolve();
+    });
+
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+    HTMLElement.prototype.requestFullscreen = requestFullscreen;
+    document.exitFullscreen = exitFullscreen;
+    let unmount = () => undefined;
+
+    try {
+      ({ unmount } = render(
+        React.createElement(DeckPresentationOverlay, {
+          deck,
+          open: true,
+          options: {
+            fullscreen: {
+              strategy: "browser-fullscreen",
+            },
+            controls: {
+              visibility: "visible",
+            },
+          },
+        }),
+      ));
+
+      expect(requestFullscreen).toHaveBeenCalledTimes(1);
+
+      fireEvent.keyDown(window, { key: "ArrowRight" });
+
+      expect(screen.getByText("Details")).toBeInTheDocument();
+      expect(exitFullscreen).not.toHaveBeenCalled();
+      expect(screen.getByRole("dialog", { name: "Presentation plein ecran" })).toBeInTheDocument();
+    } finally {
+      unmount();
+      HTMLElement.prototype.requestFullscreen = originalRequestFullscreen;
+      document.exitFullscreen = originalExitFullscreen;
+      if (fullscreenDescriptor) {
+        Object.defineProperty(document, "fullscreenElement", fullscreenDescriptor);
+      }
+    }
+  });
+
   it("renders DeckStudio in form mode without storage", async () => {
     render(
       React.createElement(DeckStudio, {
@@ -172,8 +290,34 @@ describe("deck-runtime public rendering", () => {
 
     expect(screen.getByRole("button", { name: /1 cover cover/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /2 details title-body/ })).toBeInTheDocument();
-    expect(screen.getByLabelText("Title")).toHaveValue("# Stable title\n");
-    expect(screen.getByLabelText("Subtitle")).toHaveValue("Runtime preview\n");
+    expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    expect(screen.getByLabelText("Subtitle")).toHaveValue("Runtime preview");
+    expect(screen.getByLabelText("Title").tagName).toBe("INPUT");
+    expect(screen.getByLabelText("Subtitle").tagName).toBe("INPUT");
+  });
+
+  it("switches DeckStudio between form, yaml, and preview views", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "view-mode-deck",
+        initialValue: source,
+        storage: false,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const viewSelect = screen.getByRole("combobox", { name: "Editor view" });
+    expect(viewSelect).toHaveValue("form");
+
+    fireEvent.change(viewSelect, { target: { value: "source" } });
+    expect(screen.getByDisplayValue(/version: 1/)).toBeInTheDocument();
+
+    fireEvent.change(viewSelect, { target: { value: "preview" } });
+    expect(screen.getByRole("region", { name: "Slide preview" })).toBeInTheDocument();
+    expect(screen.getByText("Stable title")).toBeInTheDocument();
   });
 
   it("supports DeckStudio panel options without legacy show flags", async () => {
@@ -198,12 +342,31 @@ describe("deck-runtime public rendering", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Title")).toHaveValue("# Stable title\n");
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
     });
 
     expect(screen.queryByRole("navigation", { name: "Slides" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "YAML" })).not.toBeInTheDocument();
     expect(screen.queryByText("Diagnostics")).not.toBeInTheDocument();
+  });
+
+  it("renders an explicit empty state when DeckStudio has no diagnostics", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "empty-diagnostics-deck",
+        initialValue: source,
+        storage: false,
+        layout: {
+          showVersionHistory: false,
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Diagnostics")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Aucun diagnostic.")).toBeInTheDocument();
   });
 
   it("does not recompile DeckStudio only because integration props are recreated", async () => {

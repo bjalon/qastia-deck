@@ -1,1 +1,1 @@
-{"version":3,"file":"TitleBodyLayout.d.ts","sourceRoot":"","sources":["../../../src/layouts/TitleBodyLayout.tsx"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,mBAAmB,EAAE,MAAM,gBAAgB,CAAC;AAE1D,wBAAgB,eAAe,CAAC,EAAE,KAAK,EAAE,MAAM,EAAE,EAAE,mBAAmB,GAAG,KAAK,CAAC,YAAY,CAY1F"}
+{"version":3,"file":"TitleBodyLayout.d.ts","sourceRoot":"","sources":["../../../src/layouts/TitleBodyLayout.tsx"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,mBAAmB,EAAE,MAAM,gBAAgB,CAAC;AAG1D,wBAAgB,eAAe,CAAC,EAAE,KAAK,EAAE,MAAM,EAAE,EAAE,mBAAmB,GAAG,KAAK,CAAC,YAAY,CAa1F"}

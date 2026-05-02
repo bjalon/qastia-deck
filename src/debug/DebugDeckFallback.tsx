@@ -21,6 +21,14 @@ export function DiagnosticsList({
 }: {
   readonly diagnostics: DebugDeckViewModel["diagnostics"];
 }): React.ReactElement {
+  if (diagnostics.length === 0) {
+    return (
+      <div className="deck-diagnostics-empty" role="status">
+        Aucun diagnostic.
+      </div>
+    );
+  }
+
   return (
     <ul className="deck-diagnostics-list">
       {diagnostics.map((diagnostic, index) => (

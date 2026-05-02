@@ -428,12 +428,14 @@ export type DeckShowProps = {
     readonly defaultSelectedSlideId?: string;
     readonly selectedSlideId?: string;
     readonly mode?: "viewer" | "embedded";
+    readonly keyboardNavigation?: false | DeckKeyboardNavigationMode;
     readonly controls?: false | DeckShowControlsOptions;
     readonly onAction?: (event: DeckUserAction, state: DeckRuntimeState) => void;
     readonly onSlideChange?: (event: SlideChangeEvent) => void;
     readonly onRequestPresentation?: (event: DeckPresentationRequestEvent) => void;
     readonly onDiagnosticClick?: (diagnostic: DeckDiagnostic) => void;
 };
+export type DeckKeyboardNavigationMode = "global" | "focus-within";
 export type DeckShowControlsOptions = {
     readonly placement?: "top" | "bottom";
     readonly showPreviousNext?: boolean;

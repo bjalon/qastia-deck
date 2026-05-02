@@ -20,6 +20,7 @@ export function DeckPresentationOverlay({
 }: DeckPresentationOverlayProps): React.ReactElement | null {
   const overlayRef = useRef<HTMLElement | null>(null);
   const autoHideTimeoutRef = useRef<number | undefined>(undefined);
+  const activeSlideIdRef = useRef<string | undefined>(undefined);
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const [autoControlsVisible, setAutoControlsVisible] = useState(true);
   const { activeIndex, activeSlide, emitAction, goTo, resetToSlideId } = useDeckNavigation({
@@ -39,6 +40,7 @@ export function DeckPresentationOverlay({
   const showHintWhenControlsHidden = options?.hint?.showWhenControlsHidden ?? true;
   const hintText = options?.hint?.text ?? "Fleches gauche/droite: precedent/suivant. Escape: quitter.";
   const hintPosition = options?.hint?.position ?? "bottom-right";
+  activeSlideIdRef.current = activeSlide?.id;
 
   const setOpen = useCallback(
     (nextOpen: boolean, origin: ActionOrigin): void => {
@@ -49,11 +51,11 @@ export function DeckPresentationOverlay({
       onOpenChange?.({
         open: nextOpen,
         origin,
-        slideId: activeSlide?.id,
+        slideId: activeSlideIdRef.current,
         createdAtIso: new Date().toISOString(),
       });
     },
-    [activeSlide?.id, onOpenChange, open],
+    [onOpenChange, open],
   );
 
   const closePresentation = useCallback(

@@ -70,15 +70,63 @@ textarea {
   justify-content: flex-end;
 }
 
-.workspace-actions > button {
+.workspace-actions > button,
+.workspace-actions select {
   background: #ffffff;
-  border: 1px solid #d0d5dd;
+  border: 1px solid #cfd6e4;
   border-radius: 6px;
-  color: #344054;
-  cursor: pointer;
+  color: #1f2a44;
   font-weight: 700;
-  min-height: 2.2rem;
+  min-height: 2.3rem;
   padding: 0.45rem 0.7rem;
+}
+
+.workspace-actions > button {
+  cursor: pointer;
+}
+
+.workspace-actions > button:hover:not(:disabled),
+.workspace-actions select:hover {
+  background: #f3f6fb;
+  border-color: #98a2b3;
+}
+
+.workspace-actions > button:disabled {
+  background: #eef2f7;
+  border-color: #d8dee8;
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+
+.workspace-actions .primary-action {
+  background: #1f2a44;
+  border-color: #1f2a44;
+  color: #ffffff;
+}
+
+.workspace-actions .primary-action:hover:not(:disabled) {
+  background: #111827;
+  border-color: #111827;
+}
+
+.workspace-actions .primary-action:disabled {
+  background: #e4e7ec;
+  border-color: #d0d5dd;
+  color: #98a2b3;
+}
+
+.workspace-select {
+  align-items: center;
+  display: flex;
+}
+
+.workspace-select span {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .status-strip span {

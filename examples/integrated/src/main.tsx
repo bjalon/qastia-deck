@@ -39,7 +39,7 @@ slides:
           Atelier CODIR
       title:
         markdown: |
-          # Aligner les décisions
+          Aligner les décisions
       subtitle:
         markdown: |
           Un support éditable directement dans l’espace client.
@@ -51,7 +51,7 @@ slides:
     slots:
       title:
         markdown: |
-          ## Objectifs de la séquence
+          Objectifs de la séquence
       body:
         markdown: |
           - Clarifier les arbitrages attendus
@@ -63,7 +63,7 @@ slides:
     slots:
       title:
         markdown: |
-          ## Avant / après
+          Avant / après
       left:
         markdown: |
           ### Avant
@@ -90,6 +90,7 @@ function IntegratedExample(): React.ReactElement {
     useState<DeckPresentationControlsMode>("auto");
   const [presentationOpen, setPresentationOpen] = useState(false);
   const [presentationInitialSlideId, setPresentationInitialSlideId] = useState<string | undefined>();
+  const [activePreviewSlideId, setActivePreviewSlideId] = useState<string | undefined>();
 
   const renderedDeck = useMemo(() => {
     if (compileResult?.status === "valid" || compileResult?.status === "degraded") {
@@ -115,6 +116,32 @@ function IntegratedExample(): React.ReactElement {
             <h1>Support intégré</h1>
           </div>
           <div className="workspace-actions">
+            <button
+              type="button"
+              className="primary-action"
+              onClick={() => {
+                if (!canPresent) {
+                  return;
+                }
+                setPresentationInitialSlideId(activePreviewSlideId ?? renderedDeck?.slides[0]?.id);
+                setPresentationOpen(true);
+              }}
+              disabled={!canPresent}
+              title={canPresent ? "Afficher en presentation plein ecran" : "Disponible uniquement sans erreur de compilation"}
+            >
+              Presentation
+            </button>
+            <label className="workspace-select">
+              <span>Presentation controls</span>
+              <select
+                value={presentationControlsMode}
+                onChange={(event) => setPresentationControlsMode(event.currentTarget.value as DeckPresentationControlsMode)}
+              >
+                <option value="visible">Boutons visibles</option>
+                <option value="hidden">Boutons hidden</option>
+                <option value="auto">Auto</option>
+              </select>
+            </label>
             <button type="button" onClick={() => setShowPreviewPane((value) => !value)}>
               {showPreviewPane ? "Masquer preview" : "Afficher preview"}
             </button>
@@ -137,20 +164,8 @@ function IntegratedExample(): React.ReactElement {
                 <DeckShow
                   deck={renderedDeck}
                   mode="embedded"
-                  controls={{
-                    showPresentationButton: true,
-                    showPresentationControlsModeSelect: true,
-                    presentationControlsMode,
-                    onPresentationControlsModeChange: setPresentationControlsMode,
-                    presentationDisabled: !canPresent,
-                    presentationUnavailableLabel: "Disponible uniquement sans erreur de compilation",
-                  }}
-                  onRequestPresentation={(event) => {
-                    if (!canPresent) {
-                      return;
-                    }
-                    setPresentationInitialSlideId(event.slideId);
-                    setPresentationOpen(true);
+                  onSlideChange={(event) => {
+                    setActivePreviewSlideId(event.activeSlideId);
                   }}
                 />
               ) : (
@@ -173,6 +188,8 @@ function IntegratedExample(): React.ReactElement {
                 showVersionHistory: false,
                 showSourceModeToggle: true,
                 showActiveSlidePreview: false,
+                slideRailWidthPx: 240,
+                inspectorWidthPx: 240,
                 density: "compact",
               }}
               features={{

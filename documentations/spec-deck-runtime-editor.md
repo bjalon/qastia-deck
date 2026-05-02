@@ -651,6 +651,14 @@ export type MarkdownBlockKind =
   | "table";
 ```
 
+Convention UI :
+
+- un champ Markdown avec `minRows: 1` est rendu comme un input simple ligne ;
+- les slots courts `title`, `eyebrow`, `subtitle` et `footer` sont éditables en simple ligne par défaut ;
+- les champs du formulaire utilisent un label flottant intégré au champ, réduit au focus ou quand une valeur existe ;
+- le slot `title` est un titre sémantique du layout : l’utilisateur ne doit pas avoir à saisir `#` ou `##` pour obtenir un rendu de titre ;
+- le rendu adapte la taille du titre selon la longueur du texte afin d’éviter les débordements.
+
 ### 7.3. Form state
 
 L’état éditable ne doit pas être le modèle compilé.
@@ -1669,6 +1677,7 @@ export type DeckShowProps = {
   readonly defaultSelectedSlideId?: string;
   readonly initialSlideId?: string;
 
+  readonly keyboardNavigation?: false | DeckKeyboardNavigationMode;
   readonly controls?: false | DeckShowControlsOptions;
 
   readonly onSlideChange?: (event: SlideChangeEvent) => void;
@@ -1681,6 +1690,8 @@ export type DeckShowProps = {
   ) => void;
   readonly onDiagnosticClick?: (diagnostic: DeckDiagnostic) => void;
 };
+
+export type DeckKeyboardNavigationMode = "global" | "focus-within";
 
 export type DeckShowControlsOptions = {
   readonly placement?: "top" | "bottom";
@@ -1704,6 +1715,13 @@ export type DeckPresentationRequestEvent = {
   readonly createdAtIso: string;
 };
 ```
+
+Règle d’intégration :
+
+- `mode: "viewer"` navigue au clavier globalement par défaut ;
+- `mode: "embedded"` navigue au clavier uniquement quand le focus est dans `DeckShow` ;
+- les événements issus de `input`, `textarea`, `select` ou `contenteditable` ne doivent jamais déclencher la navigation du deck ;
+- l’application hôte peut désactiver explicitement la navigation clavier avec `keyboardNavigation={false}`.
 
 Le bouton `Presentation`, quand il est affiché, déclenche uniquement `onRequestPresentation`.
 
