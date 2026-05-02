@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   DeckShow,
   DeckStudio,
   defaultDeckRuntime,
   type CompileDeckResult,
+  type DeckPresentationControlsMode,
   type DeckSource,
 } from "../../../src";
-import { SlideRenderer } from "../../../src/slideshow/SlideRenderer";
 import "../../../src/styles/deck-runtime.css";
 import "./styles.css";
 
@@ -83,9 +83,10 @@ slides:
 function IntegratedExample(): React.ReactElement {
   const [source, setSource] = useState<DeckSource>(initialSource);
   const [compileResult, setCompileResult] = useState<CompileDeckResult | null>(null);
-  const [presentationOpen, setPresentationOpen] = useState(false);
-  const [presentationIndex, setPresentationIndex] = useState(0);
-  const presentationRef = useRef<HTMLElement | null>(null);
+  const [showPreviewPane, setShowPreviewPane] = useState(true);
+  const [showDiagnostics, setShowDiagnostics] = useState(true);
+  const [presentationControlsMode, setPresentationControlsMode] =
+    useState<DeckPresentationControlsMode>("auto");
 
   const renderedDeck = useMemo(() => {
     if (compileResult?.status === "valid" || compileResult?.status === "degraded") {
@@ -95,98 +96,6 @@ function IntegratedExample(): React.ReactElement {
   }, [compileResult]);
 
   const canPresent = compileResult?.status === "valid" && renderedDeck !== undefined;
-  const presentationSlide = renderedDeck?.slides[presentationIndex];
-
-  const openPresentation = useCallback(() => {
-    if (!canPresent) {
-      return;
-    }
-
-    setPresentationIndex(0);
-    setPresentationOpen(true);
-  }, [canPresent]);
-
-  const closePresentation = useCallback(() => {
-    setPresentationOpen(false);
-
-    if (document.fullscreenElement === presentationRef.current) {
-      void document.exitFullscreen().catch(() => undefined);
-    }
-  }, []);
-
-  const goToPresentationSlide = useCallback(
-    (offset: number): void => {
-      if (!renderedDeck) {
-        return;
-      }
-
-      setPresentationIndex((currentIndex) =>
-        Math.min(Math.max(currentIndex + offset, 0), renderedDeck.slides.length - 1),
-      );
-    },
-    [renderedDeck],
-  );
-
-  useEffect(() => {
-    if (presentationOpen && !canPresent) {
-      closePresentation();
-    }
-  }, [canPresent, closePresentation, presentationOpen]);
-
-  useEffect(() => {
-    if (!presentationOpen) {
-      return;
-    }
-
-    const presentationElement = presentationRef.current;
-    if (presentationElement?.requestFullscreen && document.fullscreenElement !== presentationElement) {
-      void presentationElement.requestFullscreen().catch(() => undefined);
-    }
-
-    function handleFullscreenChange(): void {
-      if (document.fullscreenElement === null) {
-        setPresentationOpen(false);
-      }
-    }
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, [presentationOpen]);
-
-  useEffect(() => {
-    if (!presentationOpen) {
-      return;
-    }
-
-    function handlePresentationKeys(event: KeyboardEvent): void {
-      if (
-        event.key === "Escape" ||
-        event.key === "ArrowRight" ||
-        event.key === "PageDown" ||
-        event.key === " " ||
-        event.key === "ArrowLeft" ||
-        event.key === "PageUp"
-      ) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-
-      if (event.key === "Escape") {
-        closePresentation();
-      }
-
-      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
-        goToPresentationSlide(1);
-      }
-
-      if (event.key === "ArrowLeft" || event.key === "PageUp") {
-        goToPresentationSlide(-1);
-      }
-    }
-
-    window.addEventListener("keydown", handlePresentationKeys, true);
-    return () => window.removeEventListener("keydown", handlePresentationKeys, true);
-  }, [closePresentation, goToPresentationSlide, presentationOpen]);
 
   return (
     <main className="integrated-shell">
@@ -196,38 +105,51 @@ function IntegratedExample(): React.ReactElement {
             <p>Session client</p>
             <h1>Support intégré</h1>
           </div>
-          <div className="status-strip">
-            <span data-status={compileResult?.status ?? "pending"}>
-              {compileResult?.status ?? "pending"}
-            </span>
-            <span>{compileResult?.diagnostics.length ?? 0} diagnostic(s)</span>
+          <div className="workspace-actions">
+            <button type="button" onClick={() => setShowPreviewPane((value) => !value)}>
+              {showPreviewPane ? "Masquer preview" : "Afficher preview"}
+            </button>
+            <button type="button" onClick={() => setShowDiagnostics((value) => !value)}>
+              {showDiagnostics ? "Masquer diagnostics" : "Afficher diagnostics"}
+            </button>
+            <div className="status-strip">
+              <span data-status={compileResult?.status ?? "pending"}>
+                {compileResult?.status ?? "pending"}
+              </span>
+              <span>{compileResult?.diagnostics.length ?? 0} diagnostic(s)</span>
+            </div>
           </div>
         </div>
 
-        <div className="integrated-grid">
-          <section className="viewer-pane" aria-label="Lecture intégrée">
-            {renderedDeck ? (
-              <div className="viewer-with-presentation">
-                <button
-                  type="button"
-                  className="presentation-button"
-                  onClick={openPresentation}
-                  disabled={!canPresent}
-                  aria-disabled={!canPresent}
-                  title={
-                    canPresent
-                      ? "Afficher en presentation plein ecran"
-                      : "Disponible uniquement sans erreur de compilation"
-                  }
-                >
-                  Presentation
-                </button>
-                <DeckShow deck={renderedDeck} mode="embedded" />
-              </div>
-            ) : (
-              <div className="fallback-pane">Le deck sera affiché dès que la source sera valide.</div>
-            )}
-          </section>
+        <div className="integrated-grid" data-preview={showPreviewPane ? "visible" : "hidden"}>
+          {showPreviewPane ? (
+            <section className="viewer-pane" aria-label="Lecture intégrée">
+              {renderedDeck ? (
+                <DeckShow
+                  deck={renderedDeck}
+                  mode="embedded"
+                  controls={{
+                    showPresentationButton: true,
+                    showPresentationControlsModeSelect: true,
+                    presentationUnavailableLabel: "Disponible uniquement sans erreur de compilation",
+                  }}
+                  presentation={{
+                    canOpen: canPresent,
+                    controlsMode: presentationControlsMode,
+                    onControlsModeChange: setPresentationControlsMode,
+                    controls: {
+                      autoHideDelayMs: 1800,
+                    },
+                    hint: {
+                      text: "Fleches gauche/droite: precedent/suivant. Escape: quitter.",
+                    },
+                  }}
+                />
+              ) : (
+                <div className="fallback-pane">Le deck sera affiché dès que la source sera valide.</div>
+              )}
+            </section>
+          ) : null}
 
           <section className="editor-pane" aria-label="Edition intégrée">
             <DeckStudio
@@ -238,7 +160,8 @@ function IntegratedExample(): React.ReactElement {
               runtime={defaultDeckRuntime}
               storage={false}
               layout={{
-                showInspector: true,
+                showInspector: showDiagnostics,
+                showDiagnosticsPanel: showDiagnostics,
                 showVersionHistory: false,
                 showSourceModeToggle: true,
                 showActiveSlidePreview: false,
@@ -254,44 +177,6 @@ function IntegratedExample(): React.ReactElement {
           </section>
         </div>
       </section>
-
-      {presentationOpen && renderedDeck && presentationSlide ? (
-        <section
-          ref={presentationRef}
-          className={`presentation-overlay ${renderedDeck.theme.cssClassName}`}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Presentation plein ecran"
-        >
-          <div className="presentation-stage">
-            <SlideRenderer slide={presentationSlide} target="screen" />
-          </div>
-          <div className="presentation-controls" aria-label="Navigation presentation">
-            <button
-              type="button"
-              onClick={() => goToPresentationSlide(-1)}
-              disabled={presentationIndex === 0}
-              aria-label="Slide precedente"
-            >
-              Previous
-            </button>
-            <span>
-              {presentationIndex + 1} / {renderedDeck.slides.length}
-            </span>
-            <button
-              type="button"
-              onClick={() => goToPresentationSlide(1)}
-              disabled={presentationIndex >= renderedDeck.slides.length - 1}
-              aria-label="Slide suivante"
-            >
-              Next
-            </button>
-            <button type="button" onClick={closePresentation}>
-              Quitter
-            </button>
-          </div>
-        </section>
-      ) : null}
     </main>
   );
 }

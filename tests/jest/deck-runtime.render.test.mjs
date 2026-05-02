@@ -87,6 +87,46 @@ describe("deck-runtime public rendering", () => {
     });
   });
 
+  it("opens DeckShow presentation mode with configurable hidden controls", async () => {
+    const deck = await compileValidDeck();
+
+    render(
+      React.createElement(DeckShow, {
+        deck,
+        mode: "embedded",
+        controls: {
+          showPresentationButton: true,
+          showPresentationControlsModeSelect: true,
+        },
+        presentation: {
+          canOpen: true,
+          controlsMode: "hidden",
+          fullscreen: {
+            requestBrowserFullscreen: false,
+          },
+        },
+      }),
+    );
+
+    expect(screen.getByRole("combobox", { name: "Presentation controls" })).toHaveValue("hidden");
+
+    fireEvent.click(screen.getByRole("button", { name: "Presentation" }));
+
+    expect(screen.getByRole("dialog", { name: "Presentation plein ecran" })).toBeInTheDocument();
+    expect(screen.getByText(/Fleches gauche\/droite/)).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(screen.getAllByText("Details")).toHaveLength(2);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Presentation plein ecran" })).not.toBeInTheDocument();
+    });
+  });
+
   it("renders DeckStudio in form mode without storage", async () => {
     render(
       React.createElement(DeckStudio, {

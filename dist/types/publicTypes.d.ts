@@ -379,9 +379,37 @@ export type DeckShowProps = {
     readonly deck: CompiledDeck;
     readonly initialSlideId?: string;
     readonly mode?: "viewer" | "presenter" | "embedded";
+    readonly controls?: DeckShowControlsOptions;
+    readonly presentation?: false | DeckPresentationOptions;
     readonly onAction?: (event: DeckUserAction, state: DeckRuntimeState) => void;
     readonly onSlideChange?: (event: SlideChangeEvent) => void;
     readonly onDiagnosticClick?: (diagnostic: DeckDiagnostic) => void;
+};
+export type DeckShowControlsOptions = {
+    readonly visible?: boolean;
+    readonly showPresentationButton?: boolean;
+    readonly showPresentationControlsModeSelect?: boolean;
+    readonly presentationButtonLabel?: string;
+    readonly presentationUnavailableLabel?: string;
+};
+export type DeckPresentationControlsMode = "visible" | "hidden" | "auto";
+export type DeckPresentationOptions = {
+    readonly enabled?: boolean;
+    readonly canOpen?: boolean;
+    readonly controlsMode?: DeckPresentationControlsMode;
+    readonly onControlsModeChange?: (mode: DeckPresentationControlsMode) => void;
+    readonly fullscreen?: {
+        readonly requestBrowserFullscreen?: boolean;
+        readonly closeOnEscape?: boolean;
+    };
+    readonly controls?: {
+        readonly mode?: DeckPresentationControlsMode;
+        readonly autoHideDelayMs?: number;
+    };
+    readonly hint?: {
+        readonly showWhenControlsHidden?: boolean;
+        readonly text?: string;
+    };
 };
 export type DeckRuntimeState = {
     readonly activeSlideId: string;
