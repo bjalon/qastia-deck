@@ -8,16 +8,12 @@ import {
 } from "react";
 import { createRoot } from "react-dom/client";
 import YAML from "yaml";
-import {
-  DeckPresentationOverlay,
-  DeckPdfDownloadButton,
-  DeckShow,
-  DeckStudio,
-  defaultDeckRuntime,
-  type CompileDeckResult,
-  type DeckPresentationControlsMode,
-  type DeckSource,
-} from "../../../src";
+import { type CompileDeckResult, type DeckPresentationControlsMode, type DeckSource } from "../../../src";
+import { DeckPdfDownloadButton } from "../../../src/pdf";
+import { DeckPresentationOverlay } from "../../../src/presentation";
+import { defaultDeckRuntime } from "../../../src/runtime";
+import { DeckShow } from "../../../src/viewer";
+import { DeckStudio } from "../../../src/studio";
 import "../../../src/styles/deck-runtime.css";
 import "./styles.css";
 
