@@ -698,7 +698,9 @@ Checklist Firebase :
 - creer une base Firestore ;
 - publier les regles ci-dessus ;
 - ajouter les variables `VITE_FIREBASE_*` en local ;
-- ajouter les secrets GitHub Actions correspondants :
+- ajouter les variables ou secrets GitHub Actions correspondants. Les
+  `Repository variables` suffisent car la configuration Firebase web n'est pas
+  un secret applicatif :
   `DECK_EXAMPLE_FIREBASE_API_KEY`, `DECK_EXAMPLE_FIREBASE_AUTH_DOMAIN`,
   `DECK_EXAMPLE_FIREBASE_PROJECT_ID`, `DECK_EXAMPLE_FIREBASE_STORAGE_BUCKET`,
   `DECK_EXAMPLE_FIREBASE_MESSAGING_SENDER_ID`, `DECK_EXAMPLE_FIREBASE_APP_ID`.
