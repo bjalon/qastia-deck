@@ -3,3 +3,5 @@ node_modules/
 dist-example/
 /*.tgz
 /.env.local
+/.env.production
+/.env.production.local

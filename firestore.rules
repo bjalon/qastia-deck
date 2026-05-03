@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsDeck(deckId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/deckRuntimeExampleDecks/$(deckId))
+        && get(/databases/$(database)/documents/deckRuntimeExampleDecks/$(deckId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /deckRuntimeExampleDecks/{deckId} {
+      allow create: if signedIn()
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.deletedAtIso == null;
+
+      allow read: if signedIn()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.schemaVersion == 1;
+
+      allow delete: if false;
+
+      match /releases/{releaseId} {
+        allow read: if ownsDeck(deckId);
+
+        allow create: if ownsDeck(deckId)
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.deckId == deckId
+          && request.resource.data.createdByUid == request.auth.uid;
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}

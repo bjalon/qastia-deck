@@ -608,6 +608,11 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
 
+Pour tester exactement le build production en local, le même format peut être
+placé dans `.env.production` à la racine du repo. Ce fichier est ignoré par git.
+En CI et pour GitHub Pages, le workflow ne lit pas de fichier `.env.production` :
+il injecte les mêmes variables depuis les secrets GitHub Actions.
+
 Modele Firestore utilise par l'exemple :
 
 ```txt
@@ -640,7 +645,15 @@ deckRuntimeExampleDecks/{deckId}/releases/{releaseId}
   createdByEmail: string | null
 ```
 
-Regles Firestore minimales pour l'exemple :
+Les fichiers deployables sont fournis a la racine du repo :
+
+```txt
+firebase.json
+firestore.rules
+firestore.indexes.json
+```
+
+Regles Firestore utilisees par l'exemple :
 
 ```txt
 rules_version = '2';
