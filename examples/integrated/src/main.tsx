@@ -11,6 +11,7 @@ import { createRoot } from "react-dom/client";
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from "firebase/auth";
@@ -51,6 +52,7 @@ type AppView = "list" | "edit";
 const slideThemeOptions = Array.from(defaultDeckRuntime.themes.values()).filter(
   (theme) => theme.id !== "default",
 );
+const allowedGoogleEmails = new Set(["sophie.jalon@gmail.com", "bjalon@qastia.com"]);
 const previewPanelStorageKey = "qastia-deck-example:panel-preview";
 const diagnosticsPanelStorageKey = "qastia-deck-example:panel-diagnostics";
 const themeStorageKey = "qastia-deck-example:theme";
@@ -103,6 +105,10 @@ function FirebaseDeckApplication(): React.ReactElement {
 
   if (!user) {
     return <SignInScreen services={services} />;
+  }
+
+  if (!isAllowedUser(user)) {
+    return <AccessDeniedScreen services={services} user={user} />;
   }
 
   return <DeckManager services={services} user={user} />;
@@ -796,20 +802,77 @@ function ConfirmLeaveDialog({
 }
 
 function SignInScreen({ services }: { readonly services: ExampleFirebaseServices }): React.ReactElement {
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
+
+  async function signInWithGoogle(): Promise<void> {
+    setAuthError(null);
+    setSigningIn(true);
+
+    try {
+      await signInWithPopup(services.auth, services.googleProvider);
+    } catch (error) {
+      const message = errorMessage(error);
+
+      if (
+        message.includes("auth/popup-blocked") ||
+        message.includes("auth/popup-closed-by-user") ||
+        message.includes("auth/cancelled-popup-request")
+      ) {
+        try {
+          await signInWithRedirect(services.auth, services.googleProvider);
+          return;
+        } catch (redirectError) {
+          setAuthError(authErrorMessage(redirectError));
+          return;
+        }
+      }
+
+      setAuthError(authErrorMessage(error));
+    } finally {
+      setSigningIn(false);
+    }
+  }
+
   return (
     <CenteredPanel
       title="Connexion Google"
       body="Connectez-vous pour accéder à la bibliothèque Firebase de decks."
       action={
-        <button
-          type="button"
-          className="primary-action"
-          onClick={() => void signInWithPopup(services.auth, services.googleProvider)}
-        >
-          Se connecter avec Google
-        </button>
+        <>
+          <button
+            type="button"
+            className="primary-action"
+            onClick={() => void signInWithGoogle()}
+            disabled={signingIn}
+          >
+            {signingIn ? "Connexion..." : "Se connecter avec Google"}
+          </button>
+          {authError ? <p className="app-alert">{authError}</p> : null}
+        </>
       }
       secondary={<a href="./test/">Tester sans compte</a>}
+    />
+  );
+}
+
+function AccessDeniedScreen({
+  services,
+  user,
+}: {
+  readonly services: ExampleFirebaseServices;
+  readonly user: User;
+}): React.ReactElement {
+  return (
+    <CenteredPanel
+      title="Accès non autorisé"
+      body={`Le compte ${user.email ?? user.uid} n'est pas autorisé à accéder à la bibliothèque Firebase.`}
+      action={
+        <button type="button" onClick={() => void signOut(services.auth)}>
+          Changer de compte
+        </button>
+      }
+      secondary={<a href="./test/">Tester le designer sans compte</a>}
     />
   );
 }
@@ -961,6 +1024,10 @@ function isTestRoute(): boolean {
   return pathname.endsWith("/test") || new URLSearchParams(window.location.search).get("mode") === "test";
 }
 
+function isAllowedUser(user: User): boolean {
+  return typeof user.email === "string" && allowedGoogleEmails.has(user.email.toLowerCase());
+}
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat("fr-FR", {
     dateStyle: "medium",
@@ -980,4 +1047,22 @@ function downloadTextFile(filename: string, content: string, type: string): void
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Erreur inconnue.";
+}
+
+function authErrorMessage(error: unknown): string {
+  const message = errorMessage(error);
+
+  if (message.includes("auth/unauthorized-domain")) {
+    return "Domaine non autorisé dans Firebase Auth. Ajoutez bjalon.github.io dans Authentication > Settings > Authorized domains.";
+  }
+
+  if (message.includes("auth/operation-not-allowed")) {
+    return "Le fournisseur Google n'est pas activé dans Firebase Authentication.";
+  }
+
+  if (message.includes("auth/popup-blocked")) {
+    return "Le navigateur a bloqué la fenêtre Google. Autorisez les popups ou réessayez.";
+  }
+
+  return message;
 }
