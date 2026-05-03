@@ -663,17 +663,25 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function ownsDeck(deckId) {
+    function allowedUser() {
       return signedIn()
+        && request.auth.token.email in [
+          'sophie.jalon@gmail.com',
+          'bjalon@qastia.com'
+        ];
+    }
+
+    function ownsDeck(deckId) {
+      return allowedUser()
         && get(/databases/$(database)/documents/deckRuntimeExampleDecks/$(deckId)).data.ownerUid == request.auth.uid;
     }
 
     match /deckRuntimeExampleDecks/{deckId} {
-      allow create: if signedIn()
+      allow create: if allowedUser()
         && request.resource.data.schemaVersion == 1
         && request.resource.data.ownerUid == request.auth.uid;
 
-      allow read, update: if signedIn()
+      allow read, update: if allowedUser()
         && resource.data.ownerUid == request.auth.uid;
 
       allow delete: if false;
@@ -695,6 +703,7 @@ Checklist Firebase :
 - creer un projet Firebase ;
 - activer Authentication > Google ;
 - ajouter les domaines autorises : `localhost`, `127.0.0.1` et le domaine GitHub Pages ;
+  pour cette page : `bjalon.github.io` ;
 - creer une base Firestore ;
 - publier les regles ci-dessus ;
 - ajouter les variables `VITE_FIREBASE_*` en local ;

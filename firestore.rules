@@ -6,22 +6,30 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function ownsDeck(deckId) {
+    function allowedUser() {
       return signedIn()
+        && request.auth.token.email in [
+          'sophie.jalon@gmail.com',
+          'bjalon@qastia.com'
+        ];
+    }
+
+    function ownsDeck(deckId) {
+      return allowedUser()
         && exists(/databases/$(database)/documents/deckRuntimeExampleDecks/$(deckId))
         && get(/databases/$(database)/documents/deckRuntimeExampleDecks/$(deckId)).data.ownerUid == request.auth.uid;
     }
 
     match /deckRuntimeExampleDecks/{deckId} {
-      allow create: if signedIn()
+      allow create: if allowedUser()
         && request.resource.data.schemaVersion == 1
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.deletedAtIso == null;
 
-      allow read: if signedIn()
+      allow read: if allowedUser()
         && resource.data.ownerUid == request.auth.uid;
 
-      allow update: if signedIn()
+      allow update: if allowedUser()
         && resource.data.ownerUid == request.auth.uid
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.schemaVersion == 1;
