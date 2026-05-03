@@ -519,7 +519,8 @@ export type DeckSourceChangeReason =
   | "metadata-edit"
   | "raw-source-edit"
   | "version-restore"
-  | "crash-recovery";
+  | "crash-recovery"
+  | "cancel-edit";
 
 export type DeckSourceChangeEvent = {
   readonly reason: DeckSourceChangeReason;

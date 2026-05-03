@@ -399,7 +399,7 @@ export type DeckStudioFeatureFlags = {
     readonly allowVersionRestore?: boolean;
     readonly allowVersionCompare?: boolean;
 };
-export type DeckSourceChangeReason = "slide-field-edit" | "slide-add" | "slide-duplicate" | "slide-delete" | "slide-reorder" | "layout-change" | "theme-change" | "defaults-edit" | "metadata-edit" | "raw-source-edit" | "version-restore" | "crash-recovery";
+export type DeckSourceChangeReason = "slide-field-edit" | "slide-add" | "slide-duplicate" | "slide-delete" | "slide-reorder" | "layout-change" | "theme-change" | "defaults-edit" | "metadata-edit" | "raw-source-edit" | "version-restore" | "crash-recovery" | "cancel-edit";
 export type DeckSourceChangeEvent = {
     readonly reason: DeckSourceChangeReason;
     readonly deckId: string;

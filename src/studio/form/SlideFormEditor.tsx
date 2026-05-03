@@ -83,6 +83,7 @@ function EditorField({
         className="deck-form-input"
         placeholder=" "
         value={value}
+        onFocus={(event) => event.currentTarget.select()}
         onChange={(event) =>
           onUpdate(
             updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
@@ -98,6 +99,7 @@ function EditorField({
         placeholder=" "
         rows={field.minRows ?? 4}
         value={value}
+        onFocus={(event) => moveCaretToEnd(event.currentTarget)}
         onChange={(event) =>
           onUpdate(
             updateMarkdownSlot(source, slideId, field.slotName, event.currentTarget.value),
@@ -150,6 +152,7 @@ function EditorField({
           <input
             placeholder=" "
             value={image.assetId}
+            onFocus={(event) => event.currentTarget.select()}
             onChange={(event) =>
               onUpdate(
                 updateImageSlot(source, slideId, field.slotName, {
@@ -167,6 +170,7 @@ function EditorField({
           <input
             placeholder=" "
             value={image.src}
+            onFocus={(event) => event.currentTarget.select()}
             onChange={(event) =>
               onUpdate(
                 updateImageSlot(source, slideId, field.slotName, {
@@ -184,6 +188,7 @@ function EditorField({
           <input
             placeholder=" "
             value={image.alt}
+            onFocus={(event) => event.currentTarget.select()}
             onChange={(event) =>
               onUpdate(
                 updateImageSlot(source, slideId, field.slotName, {
@@ -228,4 +233,9 @@ function singleLineMarkdownValue(markdown: string, stripHeading: boolean): strin
   return nextMarkdown
     .replace(/\s*\n\s*/gu, " ")
     .trim();
+}
+
+function moveCaretToEnd(textarea: HTMLTextAreaElement): void {
+  const end = textarea.value.length;
+  textarea.setSelectionRange(end, end);
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent } from "react";
+import type { DragEvent, KeyboardEvent } from "react";
 import { compileDeck } from "../compiler/compileDeck";
 import { summarizeDiagnostics } from "../compiler/diagnostics";
 import { hashSource } from "../compiler/hash";
@@ -16,6 +16,7 @@ import type {
   DeckStudioViewMode,
   DeckVersionReason,
   DeckVersionSummary,
+  LayoutName,
 } from "../publicTypes";
 import { defaultDeckRuntime } from "../runtime/defaultDeckRuntime";
 import { deckThemeStyle } from "../runtime/themeStyle";
@@ -101,6 +102,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const [recoveryPrompt, setRecoveryPrompt] = useState<RecoveryPrompt | null>(null);
   const [versionCompare, setVersionCompare] = useState<VersionCompareState | null>(null);
   const [versionSource, setVersionSource] = useState<VersionSourceState | null>(null);
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [deckTitleEditing, setDeckTitleEditing] = useState(false);
   const [deckTitleDraft, setDeckTitleDraft] = useState("");
   const [slideDragState, setSlideDragState] = useState<{
@@ -109,10 +111,14 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     readonly placement?: SlideMovePlacement;
   } | null>(null);
   const [versions, setVersions] = useState<readonly DeckVersionSummary[]>([]);
+  const [committedSource, setCommittedSource] = useState<DeckSource>(source);
+  const [committedSelectedSlideId, setCommittedSelectedSlideId] = useState<string | undefined>(
+    initialSelectedSlideId,
+  );
   const mainRef = useRef<HTMLElement | null>(null);
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
-  const focusEditorAfterSlideSelectRef = useRef(false);
+  const pendingEditorFocusSlideIdRef = useRef<string | null>(null);
   const recoveryCheckedRef = useRef(false);
   const lastAutosaveVersionHashRef = useRef<string | null>(null);
 
@@ -219,6 +225,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     ? compileResult.deck
     : undefined;
   const selectedSlide = compiledDeck?.slides.find((slide) => slide.id === selectedSlideId) ?? compiledDeck?.slides[0];
+  const sourceDirty = hashSource(source.content) !== hashSource(committedSource.content);
   const inheritedMarkdownSlots = useMemo(() => {
     const inheritedSlots = new Map<string, string>();
 
@@ -486,6 +493,9 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       void createVersion("manual", "Manual save");
     }
 
+    setCommittedSource(source);
+    setCommittedSelectedSlideId(selectedSlideId);
+
     onSave?.({
       deckId,
       sourceHash: hashSource(source.content),
@@ -509,10 +519,29 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       });
       if (result.status !== "success") {
         onError?.({ message: result.diagnostics[0]?.message ?? "Unable to save current deck." });
+        return;
       }
+      setCommittedSource(nextSource);
+      setCommittedSelectedSlideId(nextSelectedSlideId);
     },
     [deckId, onError, storageConfig],
   );
+
+  const handleCancelChanges = useCallback((): void => {
+    if (!sourceDirty) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Annuler les modifications non sauvegardées et revenir à la dernière version sauvegardée ?",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setSelectedSlideId(committedSelectedSlideId);
+    publishSource(committedSource, "cancel-edit", committedSelectedSlideId);
+  }, [committedSelectedSlideId, committedSource, publishSource, sourceDirty]);
 
   const restoreVersion = useCallback(
     async (versionId: string): Promise<void> => {
@@ -767,7 +796,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   }, [deckId, saveCurrentState, selectedSlide?.id, source, storageConfig]);
 
   function selectSlide(slideId: string): void {
-    focusEditorAfterSlideSelectRef.current = true;
+    pendingEditorFocusSlideIdRef.current = slideId;
     setSelectedSlideId(slideId);
     onSelectedSlideChange?.({ deckId, slideId });
   }
@@ -780,13 +809,27 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     publishSource(nextSource, reason, nextSelectedSlideId);
   }
 
-  function handleAddSlide(): void {
-    const result = addSlide(source, "title-body", selectedSlide?.id);
+  function handleAddSlide(layout: LayoutName = "title-body"): void {
+    const result = addSlide(source, layout, selectedSlide?.id);
     if (result.slideId) {
+      pendingEditorFocusSlideIdRef.current = result.slideId;
+      if (availableViewModes.includes("form")) {
+        setViewMode("form");
+      }
       setSelectedSlideId(result.slideId);
       onSelectedSlideChange?.({ deckId, slideId: result.slideId });
     }
     updateSource(result.source, "slide-add", result.slideId);
+  }
+
+  function handleStudioKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (!features.allowAddSlide || readOnly || !event.ctrlKey || event.altKey || event.key.toLowerCase() !== "m") {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    handleAddSlide(event.shiftKey && selectedSlide ? selectedSlide.layout.name : "title-body");
   }
 
   function handleDeleteSlide(): void {
@@ -878,28 +921,32 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   }
 
   useEffect(() => {
-    if (!focusEditorAfterSlideSelectRef.current) {
+    if (!pendingEditorFocusSlideIdRef.current || pendingEditorFocusSlideIdRef.current !== selectedSlide?.id) {
       return;
     }
-    focusEditorAfterSlideSelectRef.current = false;
 
     const mainElement = mainRef.current;
-    const editorSurface = mainElement?.querySelector<HTMLElement>(
-      ".deck-studio-editor, .deck-source-editor, .deck-studio-preview-main",
-    );
-    const focusTarget = editorSurface?.matches("textarea")
-      ? editorSurface
-      : editorSurface?.querySelector<HTMLElement>(
-        "input:not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly]), select:not([disabled]), button:not([disabled])",
+    const timeoutId = window.setTimeout(() => {
+      const editorSurface = mainElement?.querySelector<HTMLElement>(
+        ".deck-studio-editor, .deck-source-editor, .deck-studio-preview-main",
       );
+      const focusTarget = editorSurface?.matches("textarea")
+        ? editorSurface
+        : editorSurface?.querySelector<HTMLElement>(
+          "input:not([type='checkbox']):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])",
+        );
 
-    if (focusTarget) {
-      focusTarget.focus();
-      return;
-    }
+      pendingEditorFocusSlideIdRef.current = null;
+      if (focusTarget) {
+        focusTarget.focus();
+        return;
+      }
 
-    mainElement?.focus();
-  }, [effectiveViewMode, selectedSlide?.id]);
+      mainElement?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [effectiveViewMode, selectedSlide?.id, source.content]);
 
   return (
     <div
@@ -907,6 +954,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       data-density={layoutOptions.density}
       data-slide-rail={layoutOptions.showSlideRail ? "visible" : "hidden"}
       data-inspector={layoutOptions.showInspector ? "visible" : "hidden"}
+      onKeyDown={handleStudioKeyDown}
     >
       {layoutOptions.showSlideRail ? (
         <aside className="deck-studio-rail" style={{ width: layoutOptions.slideRailWidthPx }}>
@@ -1022,7 +1070,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               Global
             </button>
             {features.allowAddSlide ? (
-              <button type="button" onClick={handleAddSlide} disabled={readOnly}>
+              <button type="button" onClick={() => handleAddSlide()} disabled={readOnly}>
                 Add
               </button>
             ) : null}
@@ -1045,10 +1093,32 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               </button>
             ) : null}
             {storageConfig ? (
-              <button type="button" onClick={handleManualSave} disabled={readOnly}>
-                Save
+              <>
+                <button type="button" onClick={handleManualSave} disabled={readOnly || !sourceDirty}>
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="deck-shortcuts-help-button"
+                  aria-label="Afficher les raccourcis clavier"
+                  onClick={() => setShortcutHelpOpen(true)}
+                >
+                  ?
+                </button>
+                <button type="button" onClick={handleCancelChanges} disabled={readOnly || !sourceDirty}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="deck-shortcuts-help-button"
+                aria-label="Afficher les raccourcis clavier"
+                onClick={() => setShortcutHelpOpen(true)}
+              >
+                ?
               </button>
-            ) : null}
+            )}
           </div>
         </header>
 
@@ -1174,6 +1244,42 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           onClose={() => setVersionSource(null)}
         />
       ) : null}
+      {shortcutHelpOpen ? (
+        <ShortcutHelpDialog onClose={() => setShortcutHelpOpen(false)} />
+      ) : null}
+    </div>
+  );
+}
+
+function ShortcutHelpDialog({ onClose }: { readonly onClose: () => void }): React.ReactElement {
+  return (
+    <div className="deck-modal-backdrop" role="presentation">
+      <section
+        aria-labelledby="deck-shortcuts-title"
+        aria-modal="true"
+        className="deck-modal-dialog deck-shortcuts-dialog"
+        role="dialog"
+      >
+        <header>
+          <div>
+            <p>Aide</p>
+            <h3 id="deck-shortcuts-title">Raccourcis clavier</h3>
+          </div>
+          <button type="button" onClick={onClose}>
+            Fermer
+          </button>
+        </header>
+        <dl className="deck-shortcuts-list">
+          <div>
+            <dt>Ctrl + M</dt>
+            <dd>Ajouter une slide avec le layout par défaut.</dd>
+          </div>
+          <div>
+            <dt>Ctrl + Maj + M</dt>
+            <dd>Ajouter une slide avec le même layout que la slide sélectionnée.</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   );
 }

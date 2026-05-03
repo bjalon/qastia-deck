@@ -596,6 +596,105 @@ describe("deck-runtime public rendering", () => {
     expect(slideButtons[0]).toHaveAccessibleName("1 Stable title cover");
     expect(slideButtons[1]).toHaveAccessibleName("2 New slide title-body");
     expect(slideButtons[2]).toHaveAccessibleName("3 Details title-body");
+
+    const titleInput = screen.getByLabelText("Title");
+    await waitFor(() => {
+      expect(titleInput).toHaveFocus();
+    });
+    expect(titleInput.selectionStart).toBe(0);
+    expect(titleInput.selectionEnd).toBe("New slide".length);
+
+    const bodyInput = screen.getByLabelText("Body");
+    fireEvent.focus(bodyInput);
+    expect(bodyInput.selectionStart).toBe(bodyInput.value.length);
+    expect(bodyInput.selectionEnd).toBe(bodyInput.value.length);
+  });
+
+  it("adds slides with keyboard shortcuts and displays shortcut help", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "shortcut-deck",
+        initialValue: source,
+        storage: false,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    fireEvent.keyDown(screen.getByLabelText("Title"), {
+      key: "m",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("New slide");
+    });
+
+    let slideButtons = within(screen.getByRole("navigation", { name: "Slides" })).getAllByRole("button");
+    expect(slideButtons[1]).toHaveAccessibleName("2 New slide cover");
+
+    fireEvent.keyDown(screen.getByLabelText("Title"), {
+      key: "m",
+      ctrlKey: true,
+    });
+
+    await waitFor(() => {
+      slideButtons = within(screen.getByRole("navigation", { name: "Slides" })).getAllByRole("button");
+      expect(slideButtons).toHaveLength(4);
+    });
+    expect(slideButtons[2]).toHaveAccessibleName("3 New slide title-body");
+
+    fireEvent.click(screen.getByRole("button", { name: "Afficher les raccourcis clavier" }));
+    expect(screen.getByRole("dialog", { name: "Raccourcis clavier" })).toBeInTheDocument();
+    expect(screen.getByText("Ctrl + M")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl + Maj + M")).toBeInTheDocument();
+  });
+
+  it("enables save and cancel only when the deck has unsaved changes", async () => {
+    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
+
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "dirty-state-deck",
+        initialValue: source,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const saveButton = screen.getByRole("button", { name: "Save" });
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    expect(saveButton).toBeDisabled();
+    expect(cancelButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Changed title" },
+    });
+
+    await waitFor(() => {
+      expect(saveButton).toBeEnabled();
+    });
+    expect(cancelButton).toBeEnabled();
+
+    fireEvent.click(cancelButton);
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByLabelText("Title")).toHaveValue("Changed title");
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+    expect(saveButton).toBeDisabled();
+    expect(cancelButton).toBeDisabled();
+
+    confirmSpy.mockRestore();
   });
 
   it("reorders slides with drag and drop", async () => {

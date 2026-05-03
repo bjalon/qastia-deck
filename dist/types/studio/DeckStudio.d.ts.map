@@ -1,1 +1,1 @@
-{"version":3,"file":"DeckStudio.d.ts","sourceRoot":"","sources":["../../../src/studio/DeckStudio.tsx"],"names":[],"mappings":"AAMA,OAAO,KAAK,EAQV,eAAe,EAIhB,MAAM,gBAAgB,CAAC;AAgDxB,wBAAgB,UAAU,CAAC,KAAK,EAAE,eAAe,GAAG,KAAK,CAAC,YAAY,CAwlCrE"}
+{"version":3,"file":"DeckStudio.d.ts","sourceRoot":"","sources":["../../../src/studio/DeckStudio.tsx"],"names":[],"mappings":"AAMA,OAAO,KAAK,EAQV,eAAe,EAKhB,MAAM,gBAAgB,CAAC;AAgDxB,wBAAgB,UAAU,CAAC,KAAK,EAAE,eAAe,GAAG,KAAK,CAAC,YAAY,CAgqCrE"}
