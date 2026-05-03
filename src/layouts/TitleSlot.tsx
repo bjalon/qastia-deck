@@ -3,6 +3,7 @@ import type { CompiledContent, LayoutRendererProps } from "../publicTypes";
 
 type TitleSlotProps = {
   readonly slide: LayoutRendererProps["slide"];
+  readonly renderers: LayoutRendererProps["renderers"];
   readonly name?: string;
   readonly className?: string;
   readonly variant?: "cover" | "section";
@@ -10,6 +11,7 @@ type TitleSlotProps = {
 
 export function TitleSlot({
   slide,
+  renderers,
   name = "title",
   className,
   variant = "section",
@@ -28,7 +30,7 @@ export function TitleSlot({
       data-title-variant={variant}
       data-title-size={titleSize}
     >
-      <ContentRenderer content={slot.content} />
+      <ContentRenderer content={slot.content} renderers={renderers} />
     </div>
   );
 }

@@ -93,6 +93,7 @@ export type LayoutRendererTarget = "screen" | "thumbnail" | "print";
 export type LayoutRendererProps = {
     readonly slide: CompiledSlide;
     readonly target: LayoutRendererTarget;
+    readonly renderers: RendererRegistry;
 };
 export type LayoutDefinition = {
     readonly name: LayoutName;
@@ -142,6 +143,10 @@ export type CompiledContent = {
     readonly rendererKind: string;
     readonly props: Readonly<Record<string, unknown>>;
 };
+export type CompiledRendererContentNode = {
+    readonly kind: string;
+    readonly props: Readonly<Record<string, unknown>>;
+};
 export type CompiledContentNode = {
     readonly kind: "markdown";
     readonly markdown: string;
@@ -153,6 +158,7 @@ export type CompiledContentNode = {
     readonly kind: "mermaid";
     readonly chart: string;
 };
+export type RenderableContentNode = CompiledContentNode | CompiledRendererContentNode;
 export type CompiledSlot = {
     readonly name: SlotName;
     readonly kind: SlotKind;
@@ -234,10 +240,10 @@ export type ResolvedImageAsset = {
 export interface AssetResolver {
     resolveImage(request: ResolveImageAssetRequest): Promise<ResolvedImageAsset>;
 }
-export type ContentRendererPlugin<TNode extends CompiledContentNode = CompiledContentNode> = {
-    readonly kind: TNode["kind"];
+export type ContentRendererPlugin = {
+    readonly kind: string;
     readonly render: React.ComponentType<{
-        readonly node: TNode;
+        readonly node: RenderableContentNode;
     }>;
 };
 export type RendererRegistry = ReadonlyMap<string, ContentRendererPlugin>;
@@ -247,6 +253,7 @@ export type CompiledDeck = {
     readonly theme: CompiledTheme;
     readonly aspectRatio: AspectRatio;
     readonly assets: AssetRegistry;
+    readonly renderers: RendererRegistry;
     readonly slides: readonly CompiledSlide[];
 };
 export type DebugDeckViewModel = {
@@ -367,7 +374,9 @@ export type SlideRailOptions = {
     readonly userToggle?: boolean;
     readonly placement?: "left" | "right";
     readonly widthPx?: number;
-    readonly thumbnailMode?: "live" | "simplified";
+    readonly maxVisibleItems?: number;
+    readonly itemHeightPx?: number;
+    readonly thumbnailMode?: "compact" | "live" | "simplified";
     readonly allowReorder?: boolean;
     readonly allowAddDelete?: boolean;
 };

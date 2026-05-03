@@ -16,7 +16,7 @@ export function PrintDeck({ deck }: PrintDeckProps): React.ReactElement {
           data-slide-id={slide.id}
           style={deckThemeStyle(deck.theme)}
         >
-          <SlideRenderer slide={slide} target="print" />
+          <SlideRenderer slide={slide} target="print" renderers={deck.renderers} />
         </section>
       ))}
     </div>

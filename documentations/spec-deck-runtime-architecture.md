@@ -263,6 +263,19 @@ Les renderers doivent etre resolus par registry.
 
 Le renderer Markdown/code/mermaid par defaut peut rester simple, mais l'ajout d'un renderer ne doit pas obliger a modifier les layouts.
 
+Le registry utilise au moment de la compilation doit etre propage au rendu :
+
+```txt
+compileDeck(runtime.renderers)
+  -> CompiledDeck.renderers
+  -> DeckViewport / SlideRenderer
+  -> LayoutRendererProps.renderers
+  -> ContentRenderer
+```
+
+Les layouts par defaut ne doivent jamais appeler `ContentRenderer` sans lui
+fournir le registry recu dans `LayoutRendererProps`.
+
 Mermaid reel est volontairement exclu de cette etape. Le placeholder actuel reste acceptable.
 
 ## 12. Themes

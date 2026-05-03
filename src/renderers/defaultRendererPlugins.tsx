@@ -1,8 +1,8 @@
-import type { CompiledContentNode, ContentRendererPlugin } from "../publicTypes";
+import type { ContentRendererPlugin, RenderableContentNode } from "../publicTypes";
 import ReactMarkdown from "react-markdown";
 
-function MarkdownNodeRenderer({ node }: { readonly node: CompiledContentNode }): React.ReactElement {
-  if (node.kind !== "markdown") {
+function MarkdownNodeRenderer({ node }: { readonly node: RenderableContentNode }): React.ReactElement {
+  if (node.kind !== "markdown" || !("markdown" in node)) {
     return <UnsupportedNodeRenderer node={node} />;
   }
 
@@ -40,8 +40,8 @@ function MarkdownNodeRenderer({ node }: { readonly node: CompiledContentNode }):
   );
 }
 
-function CodeNodeRenderer({ node }: { readonly node: CompiledContentNode }): React.ReactElement {
-  if (node.kind !== "code") {
+function CodeNodeRenderer({ node }: { readonly node: RenderableContentNode }): React.ReactElement {
+  if (node.kind !== "code" || !("code" in node)) {
     return <UnsupportedNodeRenderer node={node} />;
   }
 
@@ -52,15 +52,15 @@ function CodeNodeRenderer({ node }: { readonly node: CompiledContentNode }): Rea
   );
 }
 
-function MermaidNodeRenderer({ node }: { readonly node: CompiledContentNode }): React.ReactElement {
-  if (node.kind !== "mermaid") {
+function MermaidNodeRenderer({ node }: { readonly node: RenderableContentNode }): React.ReactElement {
+  if (node.kind !== "mermaid" || !("chart" in node)) {
     return <UnsupportedNodeRenderer node={node} />;
   }
 
   return <pre className="deck-mermaid-block">{node.chart}</pre>;
 }
 
-function UnsupportedNodeRenderer({ node }: { readonly node: CompiledContentNode }): React.ReactElement {
+function UnsupportedNodeRenderer({ node }: { readonly node: RenderableContentNode }): React.ReactElement {
   return <pre className="deck-unsupported-renderer">Renderer: {node.kind}</pre>;
 }
 

@@ -1,12 +1,23 @@
-import ReactMarkdown from "react-markdown";
-import type { CompiledContent, CompiledContentNode, RendererRegistry } from "../publicTypes";
+import type {
+  CompiledContent,
+  ContentRendererPlugin,
+  RenderableContentNode,
+  RendererRegistry,
+} from "../publicTypes";
+import { defaultRenderers } from "../runtime/defaultRenderers";
 
 type ContentRendererProps = {
   readonly content: CompiledContent;
   readonly renderers?: RendererRegistry;
 };
 
+export const defaultRendererRegistry: RendererRegistry = new Map(
+  defaultRenderers.map((renderer) => [renderer.kind, renderer]),
+);
+
 export function ContentRenderer({ content, renderers }: ContentRendererProps): React.ReactElement {
+  const rendererRegistry = renderers ?? defaultRendererRegistry;
+
   if (content.kind === "image") {
     return (
       <img
@@ -19,17 +30,21 @@ export function ContentRenderer({ content, renderers }: ContentRendererProps): R
   }
 
   if (content.kind === "renderer") {
-    return (
-      <pre className="deck-unsupported-renderer">
-        Renderer: {content.rendererKind}
-      </pre>
-    );
+    const renderer = rendererRegistry.get(content.rendererKind);
+    if (!renderer) {
+      return <UnsupportedRenderer kind={content.rendererKind} />;
+    }
+
+    return renderNode(renderer, {
+      kind: content.rendererKind,
+      props: content.props,
+    });
   }
 
   return (
     <div className="deck-markdown">
       {content.nodes.map((node, index) => (
-        <ContentNode key={`${node.kind}-${index}`} node={node} renderers={renderers} />
+        <ContentNode key={`${node.kind}-${index}`} node={node} renderers={rendererRegistry} />
       ))}
     </div>
   );
@@ -39,56 +54,25 @@ function ContentNode({
   node,
   renderers,
 }: {
-  readonly node: CompiledContentNode;
+  readonly node: RenderableContentNode;
   readonly renderers?: RendererRegistry;
 }): React.ReactElement {
-  const PluginRenderer = renderers?.get(node.kind)?.render;
-  if (PluginRenderer) {
-    return <PluginRenderer node={node} />;
+  const renderer = renderers?.get(node.kind) ?? defaultRendererRegistry.get(node.kind);
+  if (renderer) {
+    return renderNode(renderer, node);
   }
 
-  if (node.kind === "code") {
-    return (
-      <pre className="deck-code-block">
-        <code>{node.code}</code>
-      </pre>
-    );
-  }
+  return <UnsupportedRenderer kind={node.kind} />;
+}
 
-  if (node.kind === "mermaid") {
-    return <pre className="deck-mermaid-block">{node.chart}</pre>;
-  }
+function renderNode(
+  renderer: ContentRendererPlugin,
+  node: RenderableContentNode,
+): React.ReactElement {
+  const PluginRenderer = renderer.render;
+  return <PluginRenderer node={node} />;
+}
 
-  return (
-    <ReactMarkdown
-      allowedElements={[
-        "p",
-        "strong",
-        "em",
-        "a",
-        "ul",
-        "ol",
-        "li",
-        "blockquote",
-        "code",
-        "pre",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "hr",
-        "br",
-      ]}
-      urlTransform={(url) => {
-        if (/^(https?:|mailto:|\/|#)/i.test(url)) {
-          return url;
-        }
-        return "";
-      }}
-    >
-      {node.markdown}
-    </ReactMarkdown>
-  );
+function UnsupportedRenderer({ kind }: { readonly kind: string }): React.ReactElement {
+  return <pre className="deck-unsupported-renderer">Renderer: {kind}</pre>;
 }

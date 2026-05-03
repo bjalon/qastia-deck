@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent, KeyboardEvent } from "react";
+import type { CSSProperties, DragEvent, KeyboardEvent } from "react";
 import { compileDeck } from "../compiler/compileDeck";
 import { summarizeDiagnostics } from "../compiler/diagnostics";
 import { hashSource } from "../compiler/hash";
@@ -7,6 +7,7 @@ import { DebugDeckFallback, DiagnosticsList } from "../debug/DebugDeckFallback";
 import type {
   CompileDeckResult,
   CompiledSlide,
+  DeckDiagnostic,
   DeckDraftSnapshot,
   DeckPersistedState,
   DeckSource,
@@ -32,15 +33,18 @@ import {
   deleteSlide,
   duplicateSlide,
   getDefaultSlotMarkdown,
+  getSlideUnassignedSlots,
   hasDefaultSlot,
   moveSlide,
+  restoreUnassignedSlot,
   type SlideMovePlacement,
   updateDeckTitle,
-  updateSlideLayout,
+  updateSlideLayoutWithMigration,
 } from "./editableSource";
 import { SlideFormEditor } from "./form/SlideFormEditor";
 import { GlobalDefaultsDialog } from "./global/GlobalDefaultsDialog";
 import { CrashRecoveryDialog } from "./recovery/CrashRecoveryDialog";
+import { DeckSourceEditor, type DeckSourceEditorHandle } from "./source/DeckSourceEditor";
 import { VersionCompareDialog } from "./versions/VersionCompareDialog";
 import { VersionHistoryPanel } from "./versions/VersionHistoryPanel";
 import { VersionSourceDialog } from "./versions/VersionSourceDialog";
@@ -103,6 +107,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const [versionCompare, setVersionCompare] = useState<VersionCompareState | null>(null);
   const [versionSource, setVersionSource] = useState<VersionSourceState | null>(null);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
+  const [layoutMigrationDiagnostics, setLayoutMigrationDiagnostics] = useState<readonly DeckDiagnostic[]>([]);
   const [deckTitleEditing, setDeckTitleEditing] = useState(false);
   const [deckTitleDraft, setDeckTitleDraft] = useState("");
   const [slideDragState, setSlideDragState] = useState<{
@@ -116,6 +121,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     initialSelectedSlideId,
   );
   const mainRef = useRef<HTMLElement | null>(null);
+  const sourceEditorRef = useRef<DeckSourceEditorHandle | null>(null);
   const onCompileRef = useRef(onCompile);
   const onErrorRef = useRef(onError);
   const pendingEditorFocusSlideIdRef = useRef<string | null>(null);
@@ -902,11 +908,38 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     onSelectedSlideChange?.({ deckId, slideId: draggedSlideId });
   }
 
-  const diagnostics = compileResult?.diagnostics ?? [];
+  const diagnostics = [...(compileResult?.diagnostics ?? []), ...layoutMigrationDiagnostics];
   const effectiveViewMode = availableViewModes.includes(viewMode) ? viewMode : availableViewModes[0];
   const previewThemeClassName = compiledDeck?.theme.cssClassName ?? "";
   const previewThemeStyle = compiledDeck ? deckThemeStyle(compiledDeck.theme) : undefined;
   const deckTitle = compiledDeck?.metadata.title ?? "Deck";
+  const slideRailPanelOptions =
+    studioOptions?.panels?.slideRail
+      ? studioOptions.panels.slideRail
+      : undefined;
+  const slideRailItemHeightPx = clampPositiveInteger(slideRailPanelOptions?.itemHeightPx, 76);
+  const slideRailMaxVisibleItems = clampPositiveInteger(slideRailPanelOptions?.maxVisibleItems, 6);
+  const slideRailGapPx = 8;
+  const slideRailVerticalPaddingPx = 24;
+  const studioStyle = {
+    "--deck-slide-rail-item-height": `${slideRailItemHeightPx}px`,
+    "--deck-slide-rail-list-max-height": `${
+      (slideRailItemHeightPx * slideRailMaxVisibleItems) +
+      (slideRailGapPx * Math.max(0, slideRailMaxVisibleItems - 1)) +
+      slideRailVerticalPaddingPx
+    }px`,
+  } as CSSProperties;
+  const slideRailThumbnailMode = slideRailPanelOptions?.thumbnailMode ?? "compact";
+  const selectedSlideUnassignedSlots = selectedSlide
+    ? getSlideUnassignedSlots(source, selectedSlide.id)
+    : {};
+
+  function focusDiagnosticInSource(diagnostic: DeckDiagnostic): void {
+    setViewMode("source");
+    window.setTimeout(() => {
+      sourceEditorRef.current?.focusDiagnostic(diagnostic);
+    }, 0);
+  }
 
   function startDeckTitleEdit(): void {
     if (readOnly) {
@@ -944,7 +977,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       const focusTarget = editorSurface?.matches("textarea")
         ? editorSurface
         : editorSurface?.querySelector<HTMLElement>(
-          "input:not([type='checkbox']):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])",
+          ".cm-content, input:not([type='checkbox']):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])",
         );
 
       pendingEditorFocusSlideIdRef.current = null;
@@ -965,10 +998,15 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       data-density={layoutOptions.density}
       data-slide-rail={layoutOptions.showSlideRail ? "visible" : "hidden"}
       data-inspector={layoutOptions.showInspector ? "visible" : "hidden"}
+      style={studioStyle}
       onKeyDown={handleStudioKeyDown}
     >
       {layoutOptions.showSlideRail ? (
-        <aside className="deck-studio-rail" style={{ width: layoutOptions.slideRailWidthPx }}>
+        <aside
+          className="deck-studio-rail"
+          data-thumbnail-mode={slideRailThumbnailMode === "simplified" ? "compact" : slideRailThumbnailMode}
+          style={{ width: layoutOptions.slideRailWidthPx }}
+        >
           <header>
             {deckTitleEditing ? (
               <input
@@ -1041,10 +1079,14 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
                     if (storageConfig?.createVersionBeforeDestructiveAction) {
                       void createVersion("before-layout-change", "Before layout change");
                     }
-                    updateSource(
-                      updateSlideLayout(source, selectedSlide.id, event.currentTarget.value, runtime.layouts),
-                      "layout-change",
+                    const result = updateSlideLayoutWithMigration(
+                      source,
+                      selectedSlide.id,
+                      event.currentTarget.value,
+                      runtime.layouts,
                     );
+                    setLayoutMigrationDiagnostics(result.diagnostics);
+                    updateSource(result.source, "layout-change");
                   }}
                   disabled={readOnly}
                 >
@@ -1134,14 +1176,12 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
         </header>
 
         {effectiveViewMode === "source" ? (
-          <textarea
-            className="deck-source-editor"
+          <DeckSourceEditor
+            ref={sourceEditorRef}
             value={source.content}
-            onChange={(event) =>
-              updateSource({ ...source, content: event.currentTarget.value }, "raw-source-edit")
-            }
-            spellCheck={false}
+            diagnostics={diagnostics}
             readOnly={readOnly}
+            onChange={(content) => updateSource({ ...source, content }, "raw-source-edit")}
           />
         ) : effectiveViewMode === "preview" && selectedSlide ? (
           <section
@@ -1150,7 +1190,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             tabIndex={-1}
             style={previewThemeStyle}
           >
-            <SlideRenderer slide={selectedSlide} target="screen" />
+            <SlideRenderer slide={selectedSlide} target="screen" renderers={runtime.renderers} />
           </section>
         ) : selectedSlide ? (
           <div className="deck-studio-editor">
@@ -1162,6 +1202,35 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
               readOnly={Boolean(readOnly)}
               onUpdate={updateSource}
             />
+            {Object.keys(selectedSlideUnassignedSlots).length > 0 ? (
+              <section className="deck-unassigned-slots" aria-label="Slots non assignes">
+                <header>
+                  <strong>Contenus conserves hors rendu</strong>
+                  <span>Ces blocs ne sont pas affiches par le layout actuel.</span>
+                </header>
+                {Object.entries(selectedSlideUnassignedSlots).map(([slotName, slot]) => (
+                  <article key={slotName}>
+                    <div>
+                      <strong>{slotName}</strong>
+                      <pre>{formatUnassignedSlot(slot)}</pre>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateSource(
+                          restoreUnassignedSlot(source, selectedSlide.id, slotName),
+                          "layout-change",
+                          selectedSlide.id,
+                        )
+                      }
+                      disabled={readOnly}
+                    >
+                      Restaurer
+                    </button>
+                  </article>
+                ))}
+              </section>
+            ) : null}
           </div>
         ) : compileResult?.status === "invalid" ? (
           <DebugDeckFallback fallback={compileResult.fallback} />
@@ -1173,7 +1242,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             aria-label="Active slide preview"
             style={previewThemeStyle}
           >
-            <SlideRenderer slide={selectedSlide} target="screen" />
+            <SlideRenderer slide={selectedSlide} target="screen" renderers={runtime.renderers} />
           </section>
         ) : null}
       </main>
@@ -1183,7 +1252,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           {layoutOptions.showDiagnosticsPanel ? (
             <section>
               <h3>Diagnostics</h3>
-              <DiagnosticsList diagnostics={diagnostics} />
+              <DiagnosticsList diagnostics={diagnostics} onDiagnosticClick={focusDiagnosticInSource} />
             </section>
           ) : null}
           {(layoutOptions.showVersionHistory || versionHistoryForcedOpen) && storageConfig ? (
@@ -1331,6 +1400,26 @@ function slideDisplayTitle(slide: CompiledSlide): string {
     .find((line) => line.length > 0);
 
   return title ?? `Slide ${slide.index + 1}`;
+}
+
+function formatUnassignedSlot(slot: unknown): string {
+  if (typeof slot === "string") {
+    return slot;
+  }
+
+  try {
+    return JSON.stringify(slot, null, 2);
+  } catch {
+    return String(slot);
+  }
+}
+
+function clampPositiveInteger(value: number | undefined, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(1, Math.round(value));
 }
 
 function getSlideDropPlacement(event: DragEvent<HTMLElement>): SlideMovePlacement {

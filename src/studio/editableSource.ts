@@ -1,5 +1,5 @@
 import YAML from "yaml";
-import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
+import type { DeckDiagnostic, DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 
 type MutableDeck = Record<string, unknown> & {
   metadata?: MutableMetadata;
@@ -19,9 +19,20 @@ type MutableSlide = Record<string, unknown> & {
   id?: string;
   layout?: string;
   slots?: Record<string, unknown>;
+  unassignedSlots?: Record<string, unknown>;
 };
 
 export type SlideMovePlacement = "before" | "after";
+
+export type LayoutMigrationResult = {
+  readonly source: DeckSource;
+  readonly diagnostics: readonly DeckDiagnostic[];
+  readonly movedSlots: readonly {
+    readonly from: SlotName;
+    readonly to: SlotName;
+  }[];
+  readonly unassignedSlots: readonly SlotName[];
+};
 
 export function parseMutableDeck(source: DeckSource): MutableDeck | null {
   try {
@@ -148,12 +159,50 @@ export function updateSlideLayout(
   layout: LayoutName,
   layouts?: LayoutRegistry,
 ): DeckSource {
-  return updateSlide(source, slideId, (slide) => {
-    if (layouts && slide.layout && slide.layout !== layout) {
-      slide.slots = migrateSlots(slide, layout, layouts);
-    }
-    slide.layout = layout;
-  });
+  return updateSlideLayoutWithMigration(source, slideId, layout, layouts).source;
+}
+
+export function updateSlideLayoutWithMigration(
+  source: DeckSource,
+  slideId: string,
+  layout: LayoutName,
+  layouts?: LayoutRegistry,
+): LayoutMigrationResult {
+  const deck = parseMutableDeck(source);
+  if (!deck) {
+    return emptyLayoutMigrationResult(source);
+  }
+
+  const slides = getMutableSlides(deck);
+  const slide = slides.find((candidate) => candidate.id === slideId);
+  if (!slide) {
+    return emptyLayoutMigrationResult(source);
+  }
+
+  const migration = layouts && slide.layout && slide.layout !== layout
+    ? migrateSlots(slide, layout, layouts)
+    : {
+        slots: isRecord(slide.slots) ? slide.slots : {},
+        unassignedSlots: isRecord(slide.unassignedSlots) ? slide.unassignedSlots : {},
+        diagnostics: [],
+        movedSlots: [],
+      };
+
+  slide.slots = migration.slots;
+  if (Object.keys(migration.unassignedSlots).length > 0) {
+    slide.unassignedSlots = migration.unassignedSlots;
+  } else {
+    delete slide.unassignedSlots;
+  }
+  slide.layout = layout;
+  deck.slides = slides;
+
+  return {
+    source: stringifyMutableDeck(source, deck),
+    diagnostics: migration.diagnostics,
+    movedSlots: migration.movedSlots,
+    unassignedSlots: Object.keys(migration.unassignedSlots),
+  };
 }
 
 export function addSlide(
@@ -267,6 +316,38 @@ export function getSlotImage(
   };
 }
 
+export function getSlideUnassignedSlots(
+  source: DeckSource,
+  slideId: string,
+): Readonly<Record<string, unknown>> {
+  const deck = parseMutableDeck(source);
+  if (!deck) {
+    return {};
+  }
+
+  const slide = getMutableSlides(deck).find((candidate) => candidate.id === slideId);
+  return isRecord(slide?.unassignedSlots) ? slide.unassignedSlots : {};
+}
+
+export function restoreUnassignedSlot(
+  source: DeckSource,
+  slideId: string,
+  slotName: SlotName,
+): DeckSource {
+  return updateSlide(source, slideId, (slide) => {
+    if (!isRecord(slide.unassignedSlots) || !(slotName in slide.unassignedSlots)) {
+      return;
+    }
+
+    const slots = ensureSlots(slide);
+    slots[slotName] = slide.unassignedSlots[slotName];
+    delete slide.unassignedSlots[slotName];
+    if (Object.keys(slide.unassignedSlots).length === 0) {
+      delete slide.unassignedSlots;
+    }
+  });
+}
+
 function updateSlide(
   source: DeckSource,
   slideId: string,
@@ -330,26 +411,108 @@ function migrateSlots(
   slide: MutableSlide,
   toLayout: LayoutName,
   layouts: LayoutRegistry,
-): Record<string, unknown> {
+): {
+  readonly slots: Record<string, unknown>;
+  readonly unassignedSlots: Record<string, unknown>;
+  readonly diagnostics: readonly DeckDiagnostic[];
+  readonly movedSlots: readonly {
+    readonly from: SlotName;
+    readonly to: SlotName;
+  }[];
+} {
   const previousSlots = isRecord(slide.slots) ? slide.slots : {};
+  const previousUnassignedSlots = isRecord(slide.unassignedSlots) ? slide.unassignedSlots : {};
+  const targetLayout = layouts.get(toLayout);
   const plan = slide.layout ? layouts.get(toLayout)?.migrateFrom?.[slide.layout] : undefined;
 
-  if (!plan) {
-    return previousSlots;
+  const nextSlots: Record<string, unknown> = {};
+  const nextUnassignedSlots: Record<string, unknown> = { ...previousUnassignedSlots };
+  const consumedSlots = new Set<string>();
+  const diagnostics: DeckDiagnostic[] = [];
+  const movedSlots: { from: SlotName; to: SlotName }[] = [];
+
+  if (plan) {
+    for (const operation of plan.operations) {
+      if (operation.kind === "move-slot" && operation.from in previousSlots) {
+        nextSlots[operation.to] = previousSlots[operation.from];
+        consumedSlots.add(operation.from);
+        movedSlots.push({ from: operation.from, to: operation.to });
+
+        if (operation.from !== operation.to) {
+          diagnostics.push(layoutMigrationDiagnostic(
+            "info",
+            `Le contenu du slot '${operation.from}' a ete deplace vers '${operation.to}'.`,
+            slide.id,
+          ));
+        }
+      }
+
+      if ((operation.kind === "drop-slot" || operation.kind === "keep-unassigned") && operation.slotName in previousSlots) {
+        nextUnassignedSlots[operation.slotName] = previousSlots[operation.slotName];
+        consumedSlots.add(operation.slotName);
+        diagnostics.push(layoutMigrationDiagnostic(
+          "warning",
+          `Le slot '${operation.slotName}' a ete conserve hors rendu: ${operation.reason}`,
+          slide.id,
+        ));
+      }
+    }
   }
 
-  const nextSlots: Record<string, unknown> = {};
-
-  for (const operation of plan.operations) {
-    if (operation.kind !== "move-slot") {
+  for (const [slotName, slot] of Object.entries(previousSlots)) {
+    if (consumedSlots.has(slotName)) {
       continue;
     }
-    if (operation.from in previousSlots) {
-      nextSlots[operation.to] = previousSlots[operation.from];
+
+    if (targetLayout && layoutSupportsSlot(targetLayout, slotName) && !(slotName in nextSlots)) {
+      nextSlots[slotName] = slot;
+      continue;
     }
+
+    nextUnassignedSlots[slotName] = slot;
+    diagnostics.push(layoutMigrationDiagnostic(
+      "warning",
+      `Le slot '${slotName}' ne correspond pas au layout '${toLayout}' et a ete conserve hors rendu.`,
+      slide.id,
+    ));
   }
 
-  return nextSlots;
+  return {
+    slots: nextSlots,
+    unassignedSlots: nextUnassignedSlots,
+    diagnostics,
+    movedSlots,
+  };
+}
+
+function layoutSupportsSlot(
+  layout: { readonly requiredSlots: readonly SlotName[]; readonly optionalSlots: readonly SlotName[] },
+  slotName: SlotName,
+): boolean {
+  return layout.requiredSlots.includes(slotName) || layout.optionalSlots.includes(slotName);
+}
+
+function layoutMigrationDiagnostic(
+  severity: DeckDiagnostic["severity"],
+  message: string,
+  slideId?: string,
+): DeckDiagnostic {
+  return {
+    code: "LAYOUT_UNASSIGNED_SLOT",
+    severity,
+    message,
+    slideId,
+    hint: "Le contenu reste disponible dans les slots non assignes du YAML.",
+  };
+}
+
+function emptyLayoutMigrationResult(source: DeckSource): LayoutMigrationResult {
+  return {
+    source,
+    diagnostics: [],
+    movedSlots: [],
+    unassignedSlots: [],
+  };
 }
 
 function uniqueSlideId(slides: readonly MutableSlide[], prefix: string): string {

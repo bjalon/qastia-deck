@@ -261,6 +261,60 @@ export declare const rawDeckSchema: z.ZodObject<{
                 props?: Record<string, unknown> | undefined;
             };
         }>]>>>;
+        unassignedSlots: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnion<[z.ZodObject<{
+            markdown: z.ZodString;
+        }, "strict", z.ZodTypeAny, {
+            markdown: string;
+        }, {
+            markdown: string;
+        }>, z.ZodObject<{
+            image: z.ZodObject<{
+                assetId: z.ZodOptional<z.ZodString>;
+                src: z.ZodOptional<z.ZodString>;
+                alt: z.ZodOptional<z.ZodString>;
+            }, "strict", z.ZodTypeAny, {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            }, {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            }>;
+        }, "strict", z.ZodTypeAny, {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        }, {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        }>, z.ZodObject<{
+            renderer: z.ZodObject<{
+                kind: z.ZodString;
+                props: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+            }, "strict", z.ZodTypeAny, {
+                kind: string;
+                props: Record<string, unknown>;
+            }, {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            }>;
+        }, "strict", z.ZodTypeAny, {
+            renderer: {
+                kind: string;
+                props: Record<string, unknown>;
+            };
+        }, {
+            renderer: {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            };
+        }>]>>>;
         transition: z.ZodOptional<z.ZodObject<{
             in: z.ZodDefault<z.ZodString>;
             out: z.ZodDefault<z.ZodString>;
@@ -291,6 +345,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             };
         }>;
         layout: string;
+        unassignedSlots: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props: Record<string, unknown>;
+            };
+        }>;
         transition?: {
             in: string;
             out: string;
@@ -305,6 +373,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             durationMs?: number | undefined;
         } | undefined;
         slots?: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            };
+        }> | undefined;
+        unassignedSlots?: Record<string, {
             markdown: string;
         } | {
             image: {
@@ -375,6 +457,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             };
         }>;
         layout: string;
+        unassignedSlots: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props: Record<string, unknown>;
+            };
+        }>;
         transition?: {
             in: string;
             out: string;
@@ -399,6 +495,20 @@ export declare const rawDeckSchema: z.ZodObject<{
             durationMs?: number | undefined;
         } | undefined;
         slots?: Record<string, {
+            markdown: string;
+        } | {
+            image: {
+                assetId?: string | undefined;
+                src?: string | undefined;
+                alt?: string | undefined;
+            };
+        } | {
+            renderer: {
+                kind: string;
+                props?: Record<string, unknown> | undefined;
+            };
+        }> | undefined;
+        unassignedSlots?: Record<string, {
             markdown: string;
         } | {
             image: {

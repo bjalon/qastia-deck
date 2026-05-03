@@ -17,7 +17,7 @@ export function DeckViewport({
 
   return activeSlide ? (
     <div className={`deck-theme-surface ${deck.theme.cssClassName}`} style={deckThemeStyle(deck.theme)}>
-      <SlideRenderer slide={activeSlide} target={target} />
+      <SlideRenderer slide={activeSlide} target={target} renderers={deck.renderers} />
     </div>
   ) : null;
 }

@@ -975,7 +975,10 @@ export type SlideRailOptions = {
   readonly visibleDefault?: boolean;
   readonly userToggle?: boolean;
   readonly placement?: "left" | "right";
-  readonly thumbnailMode?: "live" | "simplified";
+  readonly widthPx?: number;
+  readonly maxVisibleItems?: number;
+  readonly itemHeightPx?: number;
+  readonly thumbnailMode?: "compact" | "live" | "simplified";
   readonly allowReorder?: boolean;
   readonly allowAddDelete?: boolean;
 };
@@ -986,6 +989,9 @@ export type DiagnosticsPanelOptions = {
   readonly placement?: "bottom" | "right" | "inspector";
 };
 ```
+
+`maxVisibleItems` et `itemHeightPx` pilotent la hauteur du rail sans imposer
+d'override CSS cote application hotesse. Le scroll reste local au rail.
 
 Regles d'affichage des vues :
 
@@ -1319,6 +1325,13 @@ Il doit être disponible :
 - automatiquement si le document devient invalide au point de ne plus pouvoir produire un modèle éditable ;
 - dans le panneau debug.
 
+Implementation courante :
+
+- le mode source utilise un composant dedie `DeckSourceEditor` ;
+- l'edition YAML est fournie par CodeMirror 6 ;
+- un textarea masque reste present comme fallback technique et pour la valeur brute ;
+- les diagnostics disposant d'un `range` peuvent repositionner le focus dans l'editeur source.
+
 ### 12.2. Fallback debug
 
 Lorsque le compilateur retourne `invalid`, `DeckStudio` affiche :
@@ -1557,18 +1570,18 @@ export type RendererKind =
   | "diagram.mermaid"
   | "custom";
 
-export interface ContentRendererPlugin<TNode extends CompiledContentNode> {
-  readonly kind: TNode["kind"];
+export interface ContentRendererPlugin {
+  readonly kind: string;
 
   validate(
     node: TNode,
     context: RendererValidationContext,
   ): readonly DeckDiagnostic[];
 
-  render(props: ContentRendererProps<TNode>): React.ReactElement;
+  render(props: ContentRendererProps<RenderableContentNode>): React.ReactElement;
 
   renderFallback?(
-    props: ContentRendererFallbackProps<TNode>,
+    props: ContentRendererFallbackProps<RenderableContentNode>,
   ): React.ReactElement;
 }
 ```
@@ -1645,7 +1658,7 @@ export function createDeckRuntime(
 
 export type CreateDeckRuntimeOptions = {
   readonly layouts?: readonly LayoutDefinition[];
-  readonly renderers?: readonly ContentRendererPlugin<CompiledContentNode>[];
+  readonly renderers?: readonly ContentRendererPlugin[];
   readonly themes?: readonly ThemeDefinition[];
   readonly transitions?: readonly TransitionDefinition[];
   readonly storage?: DeckPersistenceAdapter;

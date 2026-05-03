@@ -276,6 +276,9 @@ Les panneaux du studio peuvent etre actives, masques ou configures :
         visibleDefault: true,
         userToggle: true,
         widthPx: 220,
+        maxVisibleItems: 6,
+        itemHeightPx: 76,
+        thumbnailMode: "compact",
         allowReorder: true,
         allowAddDelete: true,
       },
@@ -295,7 +298,36 @@ Les panneaux du studio peuvent etre actives, masques ou configures :
 />
 ```
 
-Le rail de slides est volontairement compact. S'il contient beaucoup de slides, il scrolle localement pour garder le focus sur le panneau d'edition principal.
+Le rail de slides est volontairement compact. `maxVisibleItems` fixe le nombre
+approximatif de slides visibles avant scroll local, et `itemHeightPx` garantit
+une hauteur stable des cartes. S'il contient beaucoup de slides, il scrolle
+localement pour garder le focus sur le panneau d'edition principal.
+
+### Renderers Runtime
+
+Les renderers declares dans `createDeckRuntime` sont propages jusqu'aux layouts
+par defaut :
+
+```tsx
+const runtime = createDeckRuntime({
+  renderers: [
+    {
+      kind: "markdown",
+      render: ({ node }) => <CustomMarkdown node={node} />,
+    },
+  ],
+});
+
+const result = await compileDeck(source, {
+  runtime,
+  mode: "viewer",
+  locale: "fr-FR",
+});
+```
+
+Le deck compile conserve le registry utilise pendant la compilation, puis
+`DeckShow`, `DeckStudio`, `DeckPresentationOverlay` et `PrintDeck` le transmettent
+au rendu.
 
 ### Feature Flags
 

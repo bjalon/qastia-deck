@@ -18,8 +18,10 @@ export function DebugDeckFallback({ fallback }: DebugDeckFallbackProps): React.R
 
 export function DiagnosticsList({
   diagnostics,
+  onDiagnosticClick,
 }: {
   readonly diagnostics: DebugDeckViewModel["diagnostics"];
+  readonly onDiagnosticClick?: (diagnostic: DebugDeckViewModel["diagnostics"][number]) => void;
 }): React.ReactElement {
   if (diagnostics.length === 0) {
     return (
@@ -33,9 +35,16 @@ export function DiagnosticsList({
     <ul className="deck-diagnostics-list">
       {diagnostics.map((diagnostic, index) => (
         <li key={`${diagnostic.code}-${index}`} data-severity={diagnostic.severity}>
-          <strong>{diagnostic.code}</strong>
-          <span>{diagnostic.message}</span>
-          {diagnostic.hint ? <small>{diagnostic.hint}</small> : null}
+          <button
+            type="button"
+            disabled={!onDiagnosticClick}
+            onClick={() => onDiagnosticClick?.(diagnostic)}
+          >
+            <strong>{diagnostic.code}</strong>
+            <span>{diagnostic.message}</span>
+            {diagnostic.range ? <small>Ligne {diagnostic.range.start.line + 1}</small> : null}
+            {diagnostic.hint ? <small>{diagnostic.hint}</small> : null}
+          </button>
         </li>
       ))}
     </ul>

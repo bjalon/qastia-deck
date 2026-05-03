@@ -12,6 +12,7 @@ import type {
   DeckDiagnostic,
   DeckSource,
   SlotName,
+  SourcePosition,
 } from "../publicTypes";
 import { compileMarkdown } from "./compileMarkdown";
 import { diagnostic } from "./diagnostics";
@@ -34,13 +35,19 @@ export async function compileDeck(
 
     for (const error of document.errors) {
       diagnostics.push(
-        diagnostic("YAML_SYNTAX_ERROR", "error", error.message, undefined, undefined),
+        {
+          ...diagnostic("YAML_SYNTAX_ERROR", "error", error.message, undefined, undefined),
+          range: rangeFromYamlError(source.content, error),
+        },
       );
     }
 
     for (const warning of document.warnings) {
       diagnostics.push(
-        diagnostic("YAML_PARSE_WARNING", "warning", warning.message, undefined, undefined),
+        {
+          ...diagnostic("YAML_PARSE_WARNING", "warning", warning.message, undefined, undefined),
+          range: rangeFromYamlError(source.content, warning),
+        },
       );
     }
 
@@ -173,6 +180,7 @@ export async function compileDeck(
     theme,
     aspectRatio: rawDeck.defaults.aspectRatio,
     assets,
+    renderers: context.runtime.renderers,
     slides,
   };
 
@@ -188,6 +196,40 @@ export async function compileDeck(
     status: "valid",
     deck,
     diagnostics: [],
+  };
+}
+
+function rangeFromYamlError(source: string, error: unknown): DeckDiagnostic["range"] {
+  if (!isYamlErrorWithPosition(error)) {
+    return undefined;
+  }
+
+  const [startOffset, endOffset = startOffset] = error.pos;
+  return {
+    start: positionFromOffset(source, startOffset),
+    end: positionFromOffset(source, endOffset),
+  };
+}
+
+function isYamlErrorWithPosition(error: unknown): error is { readonly pos: readonly [number, number?] } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "pos" in error &&
+    Array.isArray((error as { readonly pos?: unknown }).pos) &&
+    typeof (error as { readonly pos: readonly unknown[] }).pos[0] === "number"
+  );
+}
+
+function positionFromOffset(source: string, offset: number): SourcePosition {
+  const safeOffset = Math.min(Math.max(offset, 0), source.length);
+  const before = source.slice(0, safeOffset);
+  const lines = before.split(/\r?\n/);
+
+  return {
+    offset: safeOffset,
+    line: lines.length - 1,
+    column: lines[lines.length - 1]?.length ?? 0,
   };
 }
 
@@ -285,6 +327,19 @@ function validateSemantics(
           ),
         );
       }
+    }
+
+    for (const slotName of Object.keys(slide.unassignedSlots)) {
+      diagnostics.push(
+        diagnostic(
+          "LAYOUT_UNASSIGNED_SLOT",
+          "warning",
+          `Slot '${slotName}' is preserved but is not rendered by layout '${layout.name}'.`,
+          ["slides", String(index), "unassignedSlots", slotName],
+          slide.id,
+          "Change to a compatible layout or move the content back into a rendered slot.",
+        ),
+      );
     }
   }
 

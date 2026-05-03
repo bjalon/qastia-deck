@@ -1,11 +1,13 @@
-import type { CompiledSlide, LayoutRendererTarget } from "../publicTypes";
+import type { CompiledSlide, LayoutRendererTarget, RendererRegistry } from "../publicTypes";
+import { defaultRendererRegistry } from "../renderers/ContentRenderer";
 
 type SlideRendererProps = {
   readonly slide: CompiledSlide;
   readonly target: LayoutRendererTarget;
+  readonly renderers?: RendererRegistry;
 };
 
-export function SlideRenderer({ slide, target }: SlideRendererProps): React.ReactElement {
+export function SlideRenderer({ slide, target, renderers = defaultRendererRegistry }: SlideRendererProps): React.ReactElement {
   const LayoutComponent = slide.layout.definition.component;
 
   return (
@@ -15,7 +17,7 @@ export function SlideRenderer({ slide, target }: SlideRendererProps): React.Reac
       data-layout={slide.layout.name}
       data-target={target}
     >
-      <LayoutComponent slide={slide} target={target} />
+      <LayoutComponent slide={slide} target={target} renderers={renderers} />
     </section>
   );
 }

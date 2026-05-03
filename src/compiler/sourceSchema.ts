@@ -87,6 +87,7 @@ export const rawDeckSchema = z
             id: z.string().min(1),
             layout: z.string().min(1),
             slots: z.record(rawSlotSchema).default({}),
+            unassignedSlots: z.record(rawSlotSchema).default({}),
             transition: transitionSchema.optional(),
           })
           .strict(),

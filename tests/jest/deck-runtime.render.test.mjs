@@ -6,6 +6,7 @@ import {
   DeckShow,
   DeckStudio,
   compileDeck,
+  createDeckRuntime,
   defaultDeckRuntime,
 } from "../../dist/deck-runtime.js";
 
@@ -62,6 +63,29 @@ slides:
         markdown: Stable title
       subtitle:
         markdown: Runtime preview
+`,
+};
+
+const sourceWithTwoColumns = {
+  content: `
+version: 1
+kind: deck
+metadata:
+  title: Migration deck
+theme:
+  id: fintech-light
+slides:
+  - id: comparison
+    layout: two-columns
+    slots:
+      title:
+        markdown: Compare options
+      left:
+        markdown: Left content
+      right:
+        markdown: Right content to preserve
+      footer:
+        markdown: Footer
 `,
 };
 
@@ -983,6 +1007,117 @@ describe("deck-runtime public rendering", () => {
     });
 
     expect(onCompile).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses custom renderer plugins from createDeckRuntime in default layouts", async () => {
+    const runtime = createDeckRuntime({
+      renderers: [
+        {
+          kind: "markdown",
+          render: ({ node }) =>
+            React.createElement(
+              "span",
+              { "data-testid": "custom-markdown-renderer" },
+              node.kind === "markdown" && "markdown" in node ? `Custom: ${node.markdown.trim()}` : "Unsupported",
+            ),
+        },
+      ],
+    });
+    const result = await compileDeck(source, {
+      runtime,
+      mode: "viewer",
+      locale: "fr-FR",
+    });
+
+    if (result.status === "invalid") {
+      throw new Error("Expected custom renderer deck to compile.");
+    }
+
+    render(React.createElement(DeckShow, { deck: result.deck, mode: "embedded" }));
+
+    expect(screen.getAllByTestId("custom-markdown-renderer")[0]).toHaveTextContent("Custom: # Stable title");
+  });
+
+  it("preserves unassigned slots and shows a migration diagnostic on layout change", async () => {
+    let latestSource = sourceWithTwoColumns;
+
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "layout-migration-deck",
+        initialValue: sourceWithTwoColumns,
+        storage: false,
+        onChange: (nextSource) => {
+          latestSource = nextSource;
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Left column")).toHaveValue("Left content");
+    });
+
+    fireEvent.change(screen.getByLabelText("Layout de la slide"), {
+      target: { value: "title-body" },
+    });
+
+    await waitFor(() => {
+      expect(latestSource.content).toContain("unassignedSlots:");
+    });
+
+    expect(latestSource.content).toContain("right:");
+    expect(screen.getByText("Contenus conserves hors rendu")).toBeInTheDocument();
+    expect(screen.getByText(/Le slot 'right' a ete conserve hors rendu/)).toBeInTheDocument();
+  });
+
+  it("applies configurable slide rail dimensions", async () => {
+    const { container } = render(
+      React.createElement(DeckStudio, {
+        deckId: "slide-rail-options-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          panels: {
+            slideRail: {
+              maxVisibleItems: 3,
+              itemHeightPx: 80,
+              thumbnailMode: "compact",
+            },
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const root = container.querySelector(".deck-studio-root");
+    const rail = container.querySelector(".deck-studio-rail");
+
+    expect(root?.style.getPropertyValue("--deck-slide-rail-item-height")).toBe("80px");
+    expect(root?.style.getPropertyValue("--deck-slide-rail-list-max-height")).toBe("280px");
+    expect(rail).toHaveAttribute("data-thumbnail-mode", "compact");
+  });
+
+  it("renders the dedicated YAML source editor", async () => {
+    const { container } = render(
+      React.createElement(DeckStudio, {
+        deckId: "source-editor-deck",
+        initialValue: source,
+        storage: false,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Editor view" }), {
+      target: { value: "source" },
+    });
+
+    expect(container.querySelector(".deck-source-editor-codemirror")).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/version: 1/)).toBeInTheDocument();
   });
 
   it("matches the stable DeckShow DOM snapshot", async () => {

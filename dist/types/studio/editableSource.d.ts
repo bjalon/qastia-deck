@@ -1,4 +1,4 @@
-import type { DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
+import type { DeckDiagnostic, DeckSource, LayoutName, LayoutRegistry, SlotName } from "../publicTypes";
 type MutableDeck = Record<string, unknown> & {
     metadata?: MutableMetadata;
     defaults?: MutableDefaults;
@@ -14,8 +14,18 @@ type MutableSlide = Record<string, unknown> & {
     id?: string;
     layout?: string;
     slots?: Record<string, unknown>;
+    unassignedSlots?: Record<string, unknown>;
 };
 export type SlideMovePlacement = "before" | "after";
+export type LayoutMigrationResult = {
+    readonly source: DeckSource;
+    readonly diagnostics: readonly DeckDiagnostic[];
+    readonly movedSlots: readonly {
+        readonly from: SlotName;
+        readonly to: SlotName;
+    }[];
+    readonly unassignedSlots: readonly SlotName[];
+};
 export declare function parseMutableDeck(source: DeckSource): MutableDeck | null;
 export declare function stringifyMutableDeck(source: DeckSource, deck: MutableDeck): DeckSource;
 export declare function getMutableSlides(deck: MutableDeck): MutableSlide[];
@@ -32,6 +42,7 @@ export declare function updateImageSlot(source: DeckSource, slideId: string, slo
     readonly alt?: string;
 }): DeckSource;
 export declare function updateSlideLayout(source: DeckSource, slideId: string, layout: LayoutName, layouts?: LayoutRegistry): DeckSource;
+export declare function updateSlideLayoutWithMigration(source: DeckSource, slideId: string, layout: LayoutName, layouts?: LayoutRegistry): LayoutMigrationResult;
 export declare function addSlide(source: DeckSource, layout?: LayoutName, afterSlideId?: string): {
     readonly source: DeckSource;
     readonly slideId?: string;
@@ -45,5 +56,7 @@ export declare function getSlotImage(source: DeckSource, slideId: string, slotNa
     readonly src: string;
     readonly alt: string;
 };
+export declare function getSlideUnassignedSlots(source: DeckSource, slideId: string): Readonly<Record<string, unknown>>;
+export declare function restoreUnassignedSlot(source: DeckSource, slideId: string, slotName: SlotName): DeckSource;
 export {};
 //# sourceMappingURL=editableSource.d.ts.map
