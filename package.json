@@ -23,9 +23,9 @@
       "types": "./dist/types/viewer.d.ts",
       "import": "./dist/viewer.js"
     },
-    "./studio": {
-      "types": "./dist/types/studio.d.ts",
-      "import": "./dist/studio.js"
+    "./editor": {
+      "types": "./dist/types/editor.d.ts",
+      "import": "./dist/editor.js"
     },
     "./presentation": {
       "types": "./dist/types/presentation.d.ts",

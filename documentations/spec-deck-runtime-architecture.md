@@ -395,7 +395,7 @@ Des entrypoints legers existent aussi :
 
 ```ts
 import { DeckShow } from "@bjalon/deck-runtime/viewer";
-import { DeckStudio } from "@bjalon/deck-runtime/studio";
+import { DeckStudio } from "@bjalon/deck-runtime/editor";
 import { DeckPresentationOverlay } from "@bjalon/deck-runtime/presentation";
 import { compileDeck } from "@bjalon/deck-runtime/compiler";
 import { createDeckRuntime } from "@bjalon/deck-runtime/runtime";
@@ -416,7 +416,7 @@ Le build package produit :
 dist/
   deck-runtime.js
   viewer.js
-  studio.js
+  editor.js
   presentation.js
   compiler.js
   runtime.js

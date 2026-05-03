@@ -3,6 +3,7 @@ export { DeckStudio } from "./studio/DeckStudio";
 export type {
   ActiveSlidePreviewOptions,
   DeckAutosaveConfig,
+  DeckSource,
   DeckSourceChangeEvent,
   DeckSourceChangeReason,
   DeckStorageConfig,

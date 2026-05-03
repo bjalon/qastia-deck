@@ -24,7 +24,7 @@ Deja largement couvert :
 - defaults globaux `eyebrow` / `footer` avec override par slide ;
 - persistance `localStorage`, drafts, versions, recovery dialog, diff, version history ;
 - export PDF direct via composant, hook et fonction bas niveau ;
-- entrypoints package `viewer`, `studio`, `presentation`, `compiler`, `runtime`, `pdf` ;
+- entrypoints package `viewer`, `editor`, `presentation`, `compiler`, `runtime`, `pdf` ;
 - tests Jest sur le package buildé.
 
 Les prochains chantiers ne sont donc pas un redemarrage. Il s'agit surtout de durcir l'architecture, terminer certains contrats publics et reduire les zones encore trop monolithiques.
@@ -192,7 +192,7 @@ Reference :
 
 Etat actuel :
 
-- les entrypoints existent ;
+- les entrypoints existent, avec `editor` comme module public d'edition ;
 - le build produit des chunks separes ;
 - les tests valident surtout le package buildé fonctionnellement.
 

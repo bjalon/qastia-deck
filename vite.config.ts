@@ -9,7 +9,7 @@ export default defineConfig({
       entry: {
         "deck-runtime": resolve(__dirname, "src/index.ts"),
         viewer: resolve(__dirname, "src/viewer.ts"),
-        studio: resolve(__dirname, "src/studio.ts"),
+        editor: resolve(__dirname, "src/editor.ts"),
         presentation: resolve(__dirname, "src/presentation.ts"),
         compiler: resolve(__dirname, "src/compiler.ts"),
         runtime: resolve(__dirname, "src/runtime.ts"),

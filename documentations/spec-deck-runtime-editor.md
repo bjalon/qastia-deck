@@ -311,6 +311,17 @@ import { IntegratedDeckWorkspace } from "@bjalon/deck-runtime/workspace";
 
 Une page de preview seule ne doit pas embarquer inutilement l’éditeur, l’historique ou des renderers spécialisés non utilisés.
 
+Etat courant :
+
+- `@bjalon/deck-runtime/viewer` expose le viewer et la navigation légère.
+- `@bjalon/deck-runtime/editor` expose l'éditeur produit.
+- `@bjalon/deck-runtime/presentation` expose le plein ecran.
+- `@bjalon/deck-runtime/compiler` expose la compilation pure.
+- `@bjalon/deck-runtime/runtime` expose les registries/runtime.
+- `@bjalon/deck-runtime/pdf` isole l'export PDF.
+- `@bjalon/deck-runtime/workspace` n'est pas expose tant qu'un vrai composant
+  public `IntegratedDeckWorkspace` n'a pas ete extrait de l'exemple.
+
 ---
 
 ## 5. Modèle de source YAML

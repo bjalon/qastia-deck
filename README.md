@@ -129,7 +129,7 @@ Studio controle par l'application :
 
 ```tsx
 import { useState } from "react";
-import { DeckStudio, type DeckSource } from "@bjalon/deck-runtime/studio";
+import { DeckStudio, type DeckSource } from "@bjalon/deck-runtime/editor";
 import "@bjalon/deck-runtime/styles.css";
 
 export function ControlledDeckStudio({ initialSource }: { readonly initialSource: DeckSource }) {
@@ -508,7 +508,7 @@ Le package expose des entrypoints separes pour limiter ce qu'une application imp
 
 ```ts
 import { DeckShow } from "@bjalon/deck-runtime/viewer";
-import { DeckStudio } from "@bjalon/deck-runtime/studio";
+import { DeckStudio } from "@bjalon/deck-runtime/editor";
 import { DeckPresentationOverlay } from "@bjalon/deck-runtime/presentation";
 import { compileDeck } from "@bjalon/deck-runtime/compiler";
 import { createDeckRuntime } from "@bjalon/deck-runtime/runtime";

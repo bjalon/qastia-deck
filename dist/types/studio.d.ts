@@ -1,3 +1,0 @@
-export { DeckStudio } from "./studio/DeckStudio";
-export type { ActiveSlidePreviewOptions, DeckAutosaveConfig, DeckSourceChangeEvent, DeckSourceChangeReason, DeckStorageConfig, DeckStudioFeatureFlags, DeckStudioLayoutOptions, DeckStudioOptions, DeckStudioPanelsOptions, DeckStudioProps, DeckStudioViewMode, DiagnosticsPanelOptions, InspectorOptions, SlideRailOptions, VersionHistoryPanelOptions, } from "./publicTypes";
-//# sourceMappingURL=studio.d.ts.map

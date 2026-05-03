@@ -13,7 +13,7 @@ import { DeckPdfDownloadButton } from "../../../src/pdf";
 import { DeckPresentationOverlay } from "../../../src/presentation";
 import { defaultDeckRuntime } from "../../../src/runtime";
 import { DeckShow } from "../../../src/viewer";
-import { DeckStudio } from "../../../src/studio";
+import { DeckStudio } from "../../../src/editor";
 import "../../../src/styles/deck-runtime.css";
 import "./styles.css";
 
