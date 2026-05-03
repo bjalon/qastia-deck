@@ -463,6 +463,11 @@ export type DeckStudioOptions = {
   readonly layoutSelector?: {
     readonly enabled?: boolean;
   };
+  readonly presentation?: false | {
+    readonly enabled?: boolean;
+    readonly buttonLabel?: string;
+    readonly options?: DeckPresentationOptions;
+  };
 };
 
 export type DeckStudioPanelsOptions = {
@@ -515,6 +520,7 @@ export type DeckStudioFeatureFlags = {
   readonly allowLayoutChange?: boolean;
   readonly allowThemeChange?: boolean;
   readonly allowRawSourceEdit?: boolean;
+  readonly allowFullscreenPreview?: boolean;
   readonly allowPdfExport?: boolean;
   readonly allowVersionRestore?: boolean;
   readonly allowVersionCompare?: boolean;

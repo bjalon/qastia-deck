@@ -22,6 +22,7 @@ export const defaultDeckStudioFeatureFlags: Required<DeckStudioFeatureFlags> = {
   allowLayoutChange: true,
   allowThemeChange: true,
   allowRawSourceEdit: true,
+  allowFullscreenPreview: true,
   allowPdfExport: true,
   allowVersionRestore: true,
   allowVersionCompare: true,

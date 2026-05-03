@@ -6,6 +6,7 @@ export type {
   DeckSource,
   DeckSourceChangeEvent,
   DeckSourceChangeReason,
+  DeckPresentationOptions,
   DeckStorageConfig,
   DeckStudioFeatureFlags,
   DeckStudioLayoutOptions,

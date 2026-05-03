@@ -818,6 +818,17 @@
   min-width: 0;
 }
 
+.deck-studio-root .deck-studio-fullscreen-preview-button {
+  background: #17213d;
+  border-color: #17213d;
+  color: #ffffff;
+}
+
+.deck-studio-root .deck-studio-fullscreen-preview-button:hover:not(:disabled) {
+  background: #25375f;
+  border-color: #25375f;
+}
+
 .deck-studio-root .deck-shortcuts-help-button {
   align-items: center;
   border-radius: 999px;

@@ -4,6 +4,7 @@ import { compileDeck } from "../compiler/compileDeck";
 import { summarizeDiagnostics } from "../compiler/diagnostics";
 import { hashSource } from "../compiler/hash";
 import { DebugDeckFallback, DiagnosticsList } from "../debug/DebugDeckFallback";
+import { DeckPresentationOverlay } from "../presentation/DeckPresentationOverlay";
 import type {
   CompileDeckResult,
   CompiledSlide,
@@ -102,6 +103,7 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     studioOptions?.editing?.defaultMode ?? "form",
   );
   const [globalDefaultsOpen, setGlobalDefaultsOpen] = useState(false);
+  const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false);
   const [versionHistoryForcedOpen, setVersionHistoryForcedOpen] = useState(false);
   const [recoveryPrompt, setRecoveryPrompt] = useState<RecoveryPrompt | null>(null);
   const [versionCompare, setVersionCompare] = useState<VersionCompareState | null>(null);
@@ -912,6 +914,13 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
   const effectiveViewMode = availableViewModes.includes(viewMode) ? viewMode : availableViewModes[0];
   const previewThemeClassName = compiledDeck?.theme.cssClassName ?? "";
   const previewThemeStyle = compiledDeck ? deckThemeStyle(compiledDeck.theme) : undefined;
+  const presentationConfig = studioOptions?.presentation;
+  const presentationSettings = presentationConfig === false ? undefined : presentationConfig;
+  const fullscreenPreviewEnabled =
+    features.allowFullscreenPreview && presentationConfig !== false && (presentationSettings?.enabled ?? true);
+  const fullscreenPreviewLabel = presentationSettings
+    ? presentationSettings.buttonLabel ?? "Plein écran"
+    : "Plein écran";
   const deckTitle = compiledDeck?.metadata.title ?? "Deck";
   const slideRailPanelOptions =
     studioOptions?.panels?.slideRail
@@ -1100,6 +1109,16 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
             ) : null}
           </div>
           <div className="deck-studio-actions">
+            {fullscreenPreviewEnabled ? (
+              <button
+                type="button"
+                className="deck-studio-fullscreen-preview-button"
+                onClick={() => setFullscreenPreviewOpen(true)}
+                disabled={!compiledDeck}
+              >
+                {fullscreenPreviewLabel}
+              </button>
+            ) : null}
             {layoutOptions.showSourceModeToggle && availableViewModes.length > 1 ? (
               <label className="deck-view-mode-select">
                 <span>Editor view</span>
@@ -1280,6 +1299,15 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
           readOnly={Boolean(readOnly)}
           onUpdate={updateSource}
           onClose={() => setGlobalDefaultsOpen(false)}
+        />
+      ) : null}
+      {compiledDeck && fullscreenPreviewEnabled ? (
+        <DeckPresentationOverlay
+          deck={compiledDeck}
+          initialSlideId={selectedSlide?.id}
+          open={fullscreenPreviewOpen}
+          options={presentationSettings?.options}
+          onOpenChange={(event) => setFullscreenPreviewOpen(event.open)}
         />
       ) : null}
       {recoveryPrompt ? (

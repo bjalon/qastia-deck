@@ -262,6 +262,43 @@ permettent ensuite d'activer ou non chaque vue optionnelle :
 vue n'est pas affichee. `allowSourceMode` reste supporte comme alias historique
 de `allowYamlMode`.
 
+### Preview Plein Ecran Dans Le Studio
+
+`DeckStudio` peut afficher un bouton de preview plein ecran dans sa barre
+d'actions. Il ouvre le deck compile via le meme moteur que
+`DeckPresentationOverlay`.
+
+```tsx
+<DeckStudio
+  deckId="demo"
+  initialValue={source}
+  features={{
+    allowFullscreenPreview: true,
+  }}
+  options={{
+    presentation: {
+      buttonLabel: "Plein écran",
+      options: {
+        fullscreen: {
+          strategy: "browser-fullscreen",
+          closeOnEscape: true,
+        },
+        controls: {
+          visibility: "auto",
+          autoHideDelayMs: 1800,
+        },
+      },
+    },
+  }}
+/>
+```
+
+Pour masquer ce bouton :
+
+```tsx
+<DeckStudio deckId="demo" initialValue={source} options={{ presentation: false }} />
+```
+
 ### Panels Et Rail
 
 Les panneaux du studio peuvent etre actives, masques ou configures :

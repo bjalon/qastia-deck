@@ -1001,6 +1001,12 @@ export type DeckStudioOptions = {
     readonly allowPreviewMode?: boolean;
     readonly allowLayoutChange?: boolean;
   };
+
+  readonly presentation?: false | {
+    readonly enabled?: boolean;
+    readonly buttonLabel?: string;
+    readonly options?: DeckPresentationOptions;
+  };
 };
 
 export type SlideRailOptions = {
@@ -1062,11 +1068,16 @@ export type DeckStudioFeatureFlags = {
   readonly allowLayoutChange?: boolean;
   readonly allowThemeChange?: boolean;
   readonly allowRawSourceEdit?: boolean;
+  readonly allowFullscreenPreview?: boolean;
   readonly allowPdfExport?: boolean;
   readonly allowVersionRestore?: boolean;
   readonly allowVersionCompare?: boolean;
 };
 ```
+
+`allowFullscreenPreview` active le bouton de preview plein écran dans la barre
+d'actions du studio. L'option `presentation` configure le libellé et les options
+du `DeckPresentationOverlay` utilisé par ce bouton.
 
 ### 9.7. Événements de changement
 

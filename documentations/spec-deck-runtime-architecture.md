@@ -48,6 +48,9 @@ presentation/
   Reutilise la navigation partagee.
 
 studio/
+  Edition integree.
+  Peut exposer une action de preview plein ecran en reutilisant
+  DeckPresentationOverlay, sans dupliquer la navigation.
   Facade d'edition.
   Assemble formulaire, source YAML, preview, diagnostics et persistence.
 

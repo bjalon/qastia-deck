@@ -345,6 +345,33 @@ describe("deck-runtime public rendering", () => {
     expect(screen.getByLabelText("Subtitle").tagName).toBe("INPUT");
   });
 
+  it("opens the DeckStudio fullscreen preview from the action bar", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "stable-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          presentation: {
+            options: {
+              fullscreen: {
+                strategy: "overlay",
+              },
+            },
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Stable deck")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Plein écran" }));
+
+    expect(screen.getByRole("dialog", { name: "Presentation plein ecran" })).toBeInTheDocument();
+  });
+
   it("edits the slideshow title on double click and commits on blur", async () => {
     const onChange = jest.fn();
 
