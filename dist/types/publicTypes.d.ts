@@ -346,7 +346,9 @@ export type DeckStudioOptions = {
     readonly editing?: {
         readonly defaultMode?: DeckStudioViewMode;
         readonly viewModes?: readonly DeckStudioViewMode[];
+        readonly allowYamlMode?: boolean;
         readonly allowSourceMode?: boolean;
+        readonly allowPreviewMode?: boolean;
         readonly allowLayoutChange?: boolean;
     };
     readonly layoutSelector?: {

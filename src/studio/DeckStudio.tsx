@@ -162,17 +162,15 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
       nextOptions.showVersionHistory = panels.versionHistory.visibleDefault ?? nextOptions.showVersionHistory;
     }
 
-    if (studioOptions?.editing?.allowSourceMode === false) {
-      nextOptions.showSourceModeToggle = false;
-    }
-
     return nextOptions;
   }, [layoutProps, studioOptions]);
   const features = useMemo(() => {
     const nextFeatures = { ...defaultDeckStudioFeatureFlags, ...featuresProps };
+    const allowYamlMode =
+      studioOptions?.editing?.allowYamlMode ?? studioOptions?.editing?.allowSourceMode;
 
-    if (studioOptions?.editing?.allowSourceMode !== undefined) {
-      nextFeatures.allowRawSourceEdit = studioOptions.editing.allowSourceMode;
+    if (allowYamlMode !== undefined) {
+      nextFeatures.allowRawSourceEdit = allowYamlMode;
     }
 
     if (studioOptions?.editing?.allowLayoutChange !== undefined) {
@@ -196,12 +194,25 @@ export function DeckStudio(props: DeckStudioProps): React.ReactElement {
     return nextFeatures;
   }, [featuresProps, studioOptions]);
   const availableViewModes = useMemo<readonly DeckStudioViewMode[]>(() => {
+    const allowYamlMode =
+      studioOptions?.editing?.allowYamlMode ?? studioOptions?.editing?.allowSourceMode ?? true;
+    const allowPreviewMode = studioOptions?.editing?.allowPreviewMode ?? true;
     const configuredModes = studioOptions?.editing?.viewModes ?? ["form", "source", "preview"];
     const uniqueModes = configuredModes.filter(
       (mode, index, modes): mode is DeckStudioViewMode =>
         (mode === "form" || mode === "source" || mode === "preview") && modes.indexOf(mode) === index,
     );
-    const nextModes = uniqueModes.filter((mode) => mode !== "source" || features.allowRawSourceEdit);
+    const nextModes = uniqueModes.filter((mode) => {
+      if (mode === "source") {
+        return allowYamlMode && features.allowRawSourceEdit;
+      }
+
+      if (mode === "preview") {
+        return allowPreviewMode;
+      }
+
+      return true;
+    });
     return nextModes.length > 0 ? nextModes : ["form"];
   }, [features.allowRawSourceEdit, studioOptions]);
   const storageConfig = useMemo(

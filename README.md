@@ -227,7 +227,8 @@ Les vues visibles du studio sont configurables :
     editing: {
       defaultMode: "form",
       viewModes: ["form", "source", "preview"],
-      allowSourceMode: true,
+      allowYamlMode: true,
+      allowPreviewMode: true,
       allowLayoutChange: true,
     },
   }}
@@ -239,6 +240,27 @@ Valeurs possibles pour `viewModes` :
 - `form` : formulaire structure ;
 - `source` : YAML brut ;
 - `preview` : rendu de la slide active.
+
+`viewModes` permet de fixer la liste et l'ordre des vues. Les flags plus fins
+permettent ensuite d'activer ou non chaque vue optionnelle :
+
+```tsx
+<DeckStudio
+  deckId="demo"
+  initialValue={source}
+  options={{
+    editing: {
+      allowYamlMode: false,
+      allowPreviewMode: true,
+    },
+  }}
+/>
+```
+
+`form` reste la vue de base du studio. Si `allowYamlMode` et
+`allowPreviewMode` sont tous les deux a `false`, la liste deroulante de choix de
+vue n'est pas affichee. `allowSourceMode` reste supporte comme alias historique
+de `allowYamlMode`.
 
 ### Panels Et Rail
 

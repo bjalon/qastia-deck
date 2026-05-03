@@ -964,7 +964,9 @@ export type DeckStudioOptions = {
   readonly editing?: {
     readonly defaultMode?: "form" | "source" | "preview";
     readonly viewModes?: readonly ("form" | "source" | "preview")[];
+    readonly allowYamlMode?: boolean;
     readonly allowSourceMode?: boolean;
+    readonly allowPreviewMode?: boolean;
     readonly allowLayoutChange?: boolean;
   };
 };
@@ -984,6 +986,16 @@ export type DiagnosticsPanelOptions = {
   readonly placement?: "bottom" | "right" | "inspector";
 };
 ```
+
+Regles d'affichage des vues :
+
+- `form` est la vue de base du studio.
+- `source` correspond a l'edition YAML brute.
+- `allowYamlMode` active ou desactive explicitement la vue YAML.
+- `allowSourceMode` reste supporte comme alias historique de `allowYamlMode`.
+- `allowPreviewMode` active ou desactive explicitement la vue preview.
+- `viewModes` permet de restreindre et ordonner les vues exposees.
+- si YAML et preview sont desactives, la dropdown de selection de vue n'est pas affichee.
 
 Valeurs par défaut :
 

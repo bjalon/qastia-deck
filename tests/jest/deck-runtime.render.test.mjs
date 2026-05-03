@@ -824,6 +824,78 @@ describe("deck-runtime public rendering", () => {
     expect(screen.queryByText("YAML")).not.toBeInTheDocument();
   });
 
+  it("can disable yaml while keeping preview available", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "view-mode-preview-only-extra-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          editing: {
+            allowSourceMode: false,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const viewSelect = screen.getByRole("combobox", { name: "Editor view" });
+    expect(Array.from(viewSelect.querySelectorAll("option")).map((option) => option.value)).toEqual([
+      "form",
+      "preview",
+    ]);
+  });
+
+  it("can disable preview while keeping yaml available", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "view-mode-yaml-only-extra-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          editing: {
+            allowPreviewMode: false,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    const viewSelect = screen.getByRole("combobox", { name: "Editor view" });
+    expect(Array.from(viewSelect.querySelectorAll("option")).map((option) => option.value)).toEqual([
+      "form",
+      "source",
+    ]);
+  });
+
+  it("hides the DeckStudio view mode selector when yaml and preview are disabled", async () => {
+    render(
+      React.createElement(DeckStudio, {
+        deckId: "view-mode-form-only-deck",
+        initialValue: source,
+        storage: false,
+        options: {
+          editing: {
+            allowYamlMode: false,
+            allowPreviewMode: false,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Title")).toHaveValue("Stable title");
+    });
+
+    expect(screen.queryByRole("combobox", { name: "Editor view" })).not.toBeInTheDocument();
+  });
+
   it("supports DeckStudio panel options without legacy show flags", async () => {
     render(
       React.createElement(DeckStudio, {
