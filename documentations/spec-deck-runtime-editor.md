@@ -224,6 +224,16 @@ Mermaid
 Vitest
 ```
 
+Etat courant :
+
+- React, Vite et TypeScript strict forment le socle de build.
+- `zod` valide le schema source.
+- `yaml` parse et reecrit le modele YAML.
+- `react-markdown` rend les blocs Markdown via le registry de renderers.
+- CodeMirror 6 est branche sur le mode source YAML du studio.
+- Mermaid est rendu par un plugin runtime charge dynamiquement.
+- Vitest couvre les tests compiler, dont un test de propriete avec `fast-check`.
+
 ### 3.2. Recommandé
 
 ```txt
@@ -233,6 +243,17 @@ Shiki
 fast-check
 Playwright
 ```
+
+Etat courant :
+
+- `react-hook-form` et `@hookform/resolvers/zod` sont disponibles pour les
+  formulaires complexes a venir.
+- `Shiki` est ajoute a la stack pour le futur rendu code enrichi, mais le
+  renderer code par defaut reste volontairement leger.
+- `fast-check` est utilise sur le compiler pour verifier que des sources
+  arbitraires ne provoquent pas de throw.
+- Playwright est configure pour l'exemple integre, sans etre encore execute par
+  defaut en CI tant que les navigateurs ne sont pas installes.
 
 ### 3.3. À éviter dans le cœur
 

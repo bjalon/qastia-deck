@@ -336,6 +336,23 @@
   padding: 1rem;
 }
 
+.deck-mermaid-block-rendered {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.deck-mermaid-block-rendered svg {
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.deck-mermaid-block[data-status="failed"] {
+  border: 1px solid rgba(217, 45, 32, 0.45);
+  color: #b42318;
+}
+
 .deck-show-toolbar {
   align-items: center;
   display: flex;

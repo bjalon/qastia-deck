@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import fc from "fast-check";
 import { compileDeck, createDeckRuntime, defaultDeckRuntime, type DeckSource } from "../src";
 
 const validSource: DeckSource = {
@@ -193,5 +194,25 @@ slides:
     );
 
     expect(result.status).toBe("invalid");
+  });
+
+  it("never throws for arbitrary source strings", async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.string({ maxLength: 500 }), async (content) => {
+        const result = await compileDeck(
+          { content },
+          {
+            runtime: defaultDeckRuntime,
+            mode: "editor",
+            locale: "fr-FR",
+          },
+        );
+
+        expect(["valid", "degraded", "invalid"]).toContain(result.status);
+      }),
+      {
+        numRuns: 75,
+      },
+    );
   });
 });

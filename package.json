@@ -58,7 +58,8 @@
     "dev:example": "vite --config vite.example.config.ts --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:jest": "npm run build && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.cjs"
+    "test:jest": "npm run build && node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.cjs",
+    "test:playwright": "playwright test"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -71,23 +72,30 @@
     "@hookform/resolvers": "^3.10.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "mermaid": "^11.14.0",
     "react-hook-form": "^7.56.2",
     "react-markdown": "^9.0.3",
+    "shiki": "^4.0.2",
     "unified": "^11.0.5",
     "yaml": "^2.7.1",
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.15.3",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react-swc": "^3.8.0",
+    "fast-check": "^4.7.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "typescript": "^5.7.2",
     "vite": "^6.2.0",
     "vitest": "^3.1.2"
+  },
+  "overrides": {
+    "uuid": "^14.0.0"
   }
 }

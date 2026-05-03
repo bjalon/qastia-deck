@@ -296,28 +296,26 @@ A faire :
 
 ## 5. P2 - Rendu, Renderers Et Assets
 
-### 5.1. Mermaid reel et renderers lourds lazy-loades
+### 5.1. Renderers lourds et rendu code enrichi
 
 Reference :
 
 - `spec-deck-runtime-editor.md`, sections 16, 25.2, 30 phase 6 et 35.5 ;
 - `spec-deck-runtime-architecture.md`, sections 11 et 19.
 
-Etat actuel :
+Etat courant :
 
-- Mermaid est compile en noeud et rendu en placeholder `<pre>` ;
+- Mermaid est compile en noeud et rendu par un plugin charge dynamiquement ;
+- Mermaid utilise `securityLevel: "strict"` et affiche un fallback lisible en cas d'erreur ;
 - code blocks rendus simplement ;
-- pas de Shiki ;
-- pas de plugin Mermaid reel.
+- Shiki est disponible dans la stack, mais pas encore branche au renderer code.
 
 A faire :
 
-- creer `src/renderers/mermaid/` ;
-- valider le diagramme ;
-- configurer `securityLevel: "strict"` ;
-- lazy-loader Mermaid ;
-- fallback lisible en cas d'erreur ;
-- envisager Shiki lazy-load pour code blocks.
+- extraire Mermaid dans `src/renderers/mermaid/` si le fichier de plugins grossit ;
+- valider le diagramme en amont quand un mode strict renderer sera ajoute ;
+- brancher Shiki en lazy-load pour code blocks ;
+- garder des fallbacks compacts pour thumbnails et print.
 
 ### 5.2. Assets et images
 

@@ -1,7 +1,7 @@
 import { jsx as l, jsxs as F, Fragment as y } from "react/jsx-runtime";
 import { forwardRef as E, useRef as R, useState as g, useCallback as v } from "react";
-import { d as N } from "./ContentRenderer-D7lDas0N.js";
-import { S as _ } from "./SlideRenderer-fwLgdQAA.js";
+import { d as N } from "./ContentRenderer-cNVb24xQ.js";
+import { S as _ } from "./SlideRenderer-DY_VRveh.js";
 function b({ deck: e }) {
   return /* @__PURE__ */ l("div", { className: `deck-print-root ${e.theme.cssClassName}`, children: e.slides.map((t) => /* @__PURE__ */ l(
     "section",

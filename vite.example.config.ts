@@ -9,6 +9,7 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, "dist-example"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 650,
     rollupOptions: {
       input: resolve(__dirname, "examples/integrated/index.html"),
       output: {
@@ -19,6 +20,10 @@ export default defineConfig({
 
           if (id.includes("@codemirror/") || id.includes("@lezer/")) {
             return "vendor-codemirror";
+          }
+
+          if (id.includes("shiki")) {
+            return "vendor-shiki";
           }
 
           if (id.includes("react-markdown") || id.includes("unified") || id.includes("remark-") || id.includes("mdast-") || id.includes("micromark")) {
@@ -45,7 +50,7 @@ export default defineConfig({
             return "vendor-react";
           }
 
-          return "vendor";
+          return undefined;
         },
       },
     },

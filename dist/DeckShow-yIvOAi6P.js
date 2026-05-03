@@ -1,6 +1,6 @@
 import { jsxs as u, jsx as o } from "react/jsx-runtime";
 import { useRef as M, useCallback as A, useEffect as L } from "react";
-import { u as E, D as T, s as S } from "./useDeckNavigation-DROuWEZG.js";
+import { u as E, D as T, s as S } from "./useDeckNavigation-rlGDMr8A.js";
 function U({
   activeIndex: l,
   onNext: i,

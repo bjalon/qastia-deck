@@ -1,5 +1,5 @@
 import { jsx as a } from "react/jsx-runtime";
-import { a as r } from "./ContentRenderer-D7lDas0N.js";
+import { a as r } from "./ContentRenderer-cNVb24xQ.js";
 function m({ slide: e, target: t, renderers: o = r }) {
   const n = e.layout.definition.component;
   return /* @__PURE__ */ a(

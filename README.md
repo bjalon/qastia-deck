@@ -459,6 +459,19 @@ function CustomPdfAction({ deck }: { readonly deck: CompiledDeck }) {
 
 Le PDF client-side est genere en rasterisant les pages issues de `PrintDeck`. `jspdf` et `html2canvas` sont charges dynamiquement au moment de l'export.
 
+## Stack Technique
+
+La librairie suit la stack cible de la specification :
+
+- schema et parsing : `zod`, `yaml` ;
+- rendu contenu : `react-markdown`, Mermaid via renderer charge dynamiquement ;
+- edition source : CodeMirror 6 avec support YAML ;
+- tests : Vitest, Jest DOM et `fast-check` pour les proprietes compiler ;
+- tests visuels futurs : Playwright configure via `npm run test:playwright`.
+
+`Shiki` est disponible pour un futur renderer code enrichi. Le renderer code
+actuel reste volontairement leger pour ne pas alourdir la preview simple.
+
 ## Runtime Personnalise
 
 Le runtime par defaut contient les layouts, renderers, themes et transitions fournis par la librairie. Une application peut ajouter ou remplacer ces registres :

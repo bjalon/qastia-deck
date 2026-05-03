@@ -1,6 +1,6 @@
 import { jsx as b } from "react/jsx-runtime";
-import { d as g } from "./ContentRenderer-D7lDas0N.js";
-import { S as N } from "./SlideRenderer-fwLgdQAA.js";
+import { d as g } from "./ContentRenderer-cNVb24xQ.js";
+import { S as N } from "./SlideRenderer-DY_VRveh.js";
 import { useState as w, useMemo as E, useCallback as f } from "react";
 function L({
   activeIndex: e,
