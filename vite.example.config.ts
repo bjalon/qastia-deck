@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   base: "./",
+  envDir: __dirname,
   root: resolve(__dirname, "examples/integrated"),
   plugins: [react()],
   build: {
@@ -11,7 +12,10 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 650,
     rollupOptions: {
-      input: resolve(__dirname, "examples/integrated/index.html"),
+      input: {
+        index: resolve(__dirname, "examples/integrated/index.html"),
+        test: resolve(__dirname, "examples/integrated/test/index.html"),
+      },
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) {
@@ -36,6 +40,10 @@ export default defineConfig({
 
           if (id.includes("html2canvas")) {
             return "vendor-html2canvas";
+          }
+
+          if (id.includes("firebase") || id.includes("@firebase/")) {
+            return "vendor-firebase";
           }
 
           if (id.includes("dompurify")) {

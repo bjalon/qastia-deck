@@ -563,15 +563,22 @@ import { DeckShow, DeckStudio, compileDeck } from "@bjalon/deck-runtime";
 
 L'exemple montre une integration typique dans une page applicative :
 
+- authentification Google OAuth via Firebase Auth ;
+- liste Firestore des decks avec creation, edition, suppression, import et export JSON ;
+- modele Firestore stable `schemaVersion: 1` ;
+- releases de deck stockees dans une sous-collection immuable ;
 - preview integree avec `DeckShow` ;
 - `DeckStudio` controle sur la meme source YAML ;
 - selecteur de theme persiste dans `localStorage` ;
 - menu de panels preview/diagnostics persiste dans `localStorage` ;
 - presentation plein ecran avec choix `auto`, `visible`, `hidden` ;
 - export PDF direct ;
-- statut de compilation et diagnostics.
+- statut de compilation et diagnostics ;
+- route publique de test sans authentification.
 
 Version en ligne : https://bjalon.github.io/qastia-deck/
+
+Designer de test sans authentification : https://bjalon.github.io/qastia-deck/test/
 
 Lancement local :
 
@@ -579,6 +586,109 @@ Lancement local :
 npm install
 npm run dev:example
 ```
+
+La page `/test/` ouvre directement le designer avec un jeu de slides d'exemple,
+sans Firebase. La racine de l'exemple utilise Firebase si la configuration est
+presente.
+
+Configuration Firebase locale :
+
+```bash
+cp examples/integrated/.env.example .env.local
+```
+
+Renseigner ensuite `.env.local` à la racine du repo :
+
+```ini
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+```
+
+Modele Firestore utilise par l'exemple :
+
+```txt
+deckRuntimeExampleDecks/{deckId}
+  schemaVersion: 1
+  title: string
+  slug: string
+  description: string
+  source: string
+  ownerUid: string
+  createdAtIso: string
+  updatedAtIso: string
+  createdByEmail: string | null
+  updatedByEmail: string | null
+  releaseCount: number
+  latestReleaseId: string | null
+  latestReleaseNumber: number
+  deletedAtIso: string | null
+
+deckRuntimeExampleDecks/{deckId}/releases/{releaseId}
+  schemaVersion: 1
+  deckId: string
+  releaseNumber: number
+  label: string
+  notes: string
+  source: string
+  sourceHash: string
+  createdAtIso: string
+  createdByUid: string
+  createdByEmail: string | null
+```
+
+Regles Firestore minimales pour l'exemple :
+
+```txt
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsDeck(deckId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/deckRuntimeExampleDecks/$(deckId)).data.ownerUid == request.auth.uid;
+    }
+
+    match /deckRuntimeExampleDecks/{deckId} {
+      allow create: if signedIn()
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow read, update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow delete: if false;
+
+      match /releases/{releaseId} {
+        allow read: if ownsDeck(deckId);
+        allow create: if ownsDeck(deckId)
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.createdByUid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+  }
+}
+```
+
+Checklist Firebase :
+
+- creer un projet Firebase ;
+- activer Authentication > Google ;
+- ajouter les domaines autorises : `localhost`, `127.0.0.1` et le domaine GitHub Pages ;
+- creer une base Firestore ;
+- publier les regles ci-dessus ;
+- ajouter les variables `VITE_FIREBASE_*` en local ;
+- ajouter les secrets GitHub Actions correspondants :
+  `DECK_EXAMPLE_FIREBASE_API_KEY`, `DECK_EXAMPLE_FIREBASE_AUTH_DOMAIN`,
+  `DECK_EXAMPLE_FIREBASE_PROJECT_ID`, `DECK_EXAMPLE_FIREBASE_STORAGE_BUCKET`,
+  `DECK_EXAMPLE_FIREBASE_MESSAGING_SENDER_ID`, `DECK_EXAMPLE_FIREBASE_APP_ID`.
 
 ## Build Et Tests
 

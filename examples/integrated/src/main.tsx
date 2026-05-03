@@ -3,10 +3,17 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  type User,
+} from "firebase/auth";
 import YAML from "yaml";
 import { type CompileDeckResult, type DeckPresentationControlsMode, type DeckSource } from "../../../src";
 import { DeckPdfDownloadButton } from "../../../src/pdf";
@@ -14,93 +21,427 @@ import { DeckPresentationOverlay } from "../../../src/presentation";
 import { defaultDeckRuntime } from "../../../src/runtime";
 import { DeckShow } from "../../../src/viewer";
 import { DeckStudio } from "../../../src/editor";
+import {
+  createDeck,
+  createDeckRelease,
+  deckSourceFromRecord,
+  deleteDeck,
+  exportDecks,
+  importDecks,
+  listDeckReleases,
+  listDecks,
+  saveDeck,
+  type ExampleDeckImportPayload,
+  type ExampleDeckRecord,
+  type ExampleDeckReleaseRecord,
+} from "./deckRepository";
+import {
+  createExampleFirebaseServices,
+  hasUsableFirebaseConfig,
+  readExampleFirebaseConfig,
+  type ExampleFirebaseServices,
+} from "./firebaseExample";
+import { sampleDeckSource } from "./sampleDeck";
 import "../../../src/styles/deck-runtime.css";
 import "./styles.css";
 
-const initialSource: DeckSource = {
-  uri: "local://integrated-example.yml",
-  content: `
-version: 1
-kind: deck
-metadata:
-  title: "Parcours leadership"
-  description: "Exemple intégré dans une application métier"
-  author: "Qastia"
-  locale: "fr-FR"
-theme:
-  id: fintech-light
-defaults:
-  aspectRatio: "16:9"
-  transition:
-    in: fade
-    out: fade
-    durationMs: 180
-  slots:
-    eyebrow:
-      markdown: |
-        Atelier CODIR
-    footer:
-      markdown: |
-        Sophie Jalon Conseil
-slides:
-  - id: ouverture
-    layout: cover
-    slots:
-      title:
-        markdown: |
-          Aligner les décisions
-      subtitle:
-        markdown: |
-          Un support éditable directement dans l’espace client.
-  - id: cadrage
-    layout: title-body
-    slots:
-      title:
-        markdown: |
-          Objectifs de la séquence
-      body:
-        markdown: |
-          - Clarifier les arbitrages attendus
-          - Partager les signaux faibles
-          - Formaliser les prochaines décisions
-          - Conserver une trace exploitable après l’atelier
-  - id: comparaison
-    layout: two-columns
-    slots:
-      title:
-        markdown: |
-          Avant / après
-      left:
-        markdown: |
-          ### Avant
-
-          - Slides figées
-          - Retours dispersés
-          - Versions difficiles à suivre
-      right:
-        markdown: |
-          ### Avec Deck Runtime
-
-          - Contenu structuré
-          - Prévisualisation immédiate
-          - Sauvegarde locale des versions
-      footer:
-        markdown: |
-          Sophie Jalon Conseil - Synthèse comparative
-`,
-};
+type WorkspaceMenu = "presentation" | "theme" | "panels" | null;
+type AppView = "list" | "edit";
 
 const slideThemeOptions = Array.from(defaultDeckRuntime.themes.values()).filter(
   (theme) => theme.id !== "default",
 );
-
-type WorkspaceMenu = "presentation" | "theme" | "panels" | null;
-
 const previewPanelStorageKey = "qastia-deck-example:panel-preview";
 const diagnosticsPanelStorageKey = "qastia-deck-example:panel-diagnostics";
 const themeStorageKey = "qastia-deck-example:theme";
 
-function IntegratedExample(): React.ReactElement {
+function App(): React.ReactElement {
+  if (isTestRoute()) {
+    return (
+      <DesignerWorkspace
+        deckId="test-designer"
+        headerTitle="Tester le designer"
+        headerKicker="Mode démo"
+        initialSource={sampleDeckSource}
+        storageEnabled={false}
+      />
+    );
+  }
+
+  return <FirebaseDeckApplication />;
+}
+
+function FirebaseDeckApplication(): React.ReactElement {
+  const firebaseConfig = useMemo(() => readExampleFirebaseConfig(), []);
+  const firebaseReady = hasUsableFirebaseConfig(firebaseConfig);
+  const services = useMemo(
+    () => (firebaseReady ? createExampleFirebaseServices(firebaseConfig) : null),
+    [firebaseConfig, firebaseReady],
+  );
+  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (!services) {
+      setAuthLoading(false);
+      return undefined;
+    }
+
+    return onAuthStateChanged(services.auth, (nextUser) => {
+      setUser(nextUser);
+      setAuthLoading(false);
+    });
+  }, [services]);
+
+  if (!services) {
+    return <FirebaseSetupScreen />;
+  }
+
+  if (authLoading) {
+    return <CenteredPanel title="Chargement" body="Vérification de la session Google..." />;
+  }
+
+  if (!user) {
+    return <SignInScreen services={services} />;
+  }
+
+  return <DeckManager services={services} user={user} />;
+}
+
+function DeckManager({
+  services,
+  user,
+}: {
+  readonly services: ExampleFirebaseServices;
+  readonly user: User;
+}): React.ReactElement {
+  const [view, setView] = useState<AppView>("list");
+  const [decks, setDecks] = useState<readonly ExampleDeckRecord[]>([]);
+  const [selectedDeck, setSelectedDeck] = useState<ExampleDeckRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const actor = useMemo(
+    () => ({
+      uid: user.uid,
+      email: user.email,
+    }),
+    [user.email, user.uid],
+  );
+
+  const refreshDecks = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      setDecks(await listDecks(services.db, user.uid));
+    } catch (refreshError) {
+      setError(errorMessage(refreshError));
+    } finally {
+      setLoading(false);
+    }
+  }, [services.db, user.uid]);
+
+  useEffect(() => {
+    void refreshDecks();
+  }, [refreshDecks]);
+
+  async function createNewDeck(): Promise<void> {
+    const nextDeck = await createDeck(services.db, actor, sampleDeckSource);
+    setSelectedDeck(nextDeck);
+    setView("edit");
+    await refreshDecks();
+  }
+
+  async function removeDeck(deck: ExampleDeckRecord): Promise<void> {
+    if (!window.confirm(`Supprimer "${deck.title}" ?`)) {
+      return;
+    }
+
+    await deleteDeck(services.db, deck);
+    await refreshDecks();
+  }
+
+  if (view === "edit" && selectedDeck) {
+    return (
+      <DeckEditorView
+        actor={actor}
+        deck={selectedDeck}
+        onDeckSaved={(deck) => setSelectedDeck(deck)}
+        onExit={async () => {
+          setView("list");
+          setSelectedDeck(null);
+          await refreshDecks();
+        }}
+        services={services}
+      />
+    );
+  }
+
+  return (
+    <DeckListView
+      decks={decks}
+      error={error}
+      loading={loading}
+      onCreate={() => void createNewDeck()}
+      onDelete={(deck) => void removeDeck(deck)}
+      onEdit={(deck) => {
+        setSelectedDeck(deck);
+        setView("edit");
+      }}
+      onRefresh={() => void refreshDecks()}
+      services={services}
+      user={user}
+    />
+  );
+}
+
+function DeckEditorView({
+  actor,
+  deck,
+  onDeckSaved,
+  onExit,
+  services,
+}: {
+  readonly actor: { readonly uid: string; readonly email: string | null };
+  readonly deck: ExampleDeckRecord;
+  readonly onDeckSaved: (deck: ExampleDeckRecord) => void;
+  readonly onExit: () => void | Promise<void>;
+  readonly services: ExampleFirebaseServices;
+}): React.ReactElement {
+  const [source, setSource] = useState<DeckSource>(() => deckSourceFromRecord(deck));
+  const [savedSource, setSavedSource] = useState<DeckSource>(() => deckSourceFromRecord(deck));
+  const [currentDeck, setCurrentDeck] = useState(deck);
+  const [releases, setReleases] = useState<readonly ExampleDeckReleaseRecord[]>([]);
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const dirty = source.content !== savedSource.content;
+
+  const refreshReleases = useCallback(async (): Promise<void> => {
+    setReleases(await listDeckReleases(services.db, currentDeck.id));
+  }, [currentDeck.id, services.db]);
+
+  useEffect(() => {
+    void refreshReleases();
+  }, [refreshReleases]);
+
+  async function saveCurrentDeck(): Promise<ExampleDeckRecord> {
+    setSaving(true);
+    try {
+      const savedDeck = await saveDeck(services.db, actor, currentDeck, source);
+      setCurrentDeck(savedDeck);
+      onDeckSaved(savedDeck);
+      setSavedSource(source);
+      return savedDeck;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function createRelease(): Promise<void> {
+    const label = window.prompt("Nom de la release", `Release ${currentDeck.latestReleaseNumber + 1}`);
+    if (label === null) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await createDeckRelease(services.db, actor, currentDeck, source, label);
+      setCurrentDeck(result.deck);
+      onDeckSaved(result.deck);
+      setSavedSource(source);
+      await refreshReleases();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function requestBack(): void {
+    if (!dirty) {
+      void onExit();
+      return;
+    }
+    setReturnDialogOpen(true);
+  }
+
+  return (
+    <>
+      <DesignerWorkspace
+        deckId={currentDeck.id}
+        headerKicker="Édition Firebase"
+        headerTitle={currentDeck.title}
+        initialSource={source}
+        onBack={requestBack}
+        onCreateRelease={() => void createRelease()}
+        onSave={() => void saveCurrentDeck()}
+        onSourceChange={setSource}
+        releasePanel={<ReleasePanel releases={releases} />}
+        saveDisabled={!dirty || saving}
+        saving={saving}
+        sourceDirty={dirty}
+        storageEnabled={false}
+      />
+      {returnDialogOpen ? (
+        <ConfirmLeaveDialog
+          onCancel={() => setReturnDialogOpen(false)}
+          onDiscard={() => {
+            setSource(savedSource);
+            setReturnDialogOpen(false);
+            void onExit();
+          }}
+          onSave={async () => {
+            await saveCurrentDeck();
+            setReturnDialogOpen(false);
+            await onExit();
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function DeckListView({
+  decks,
+  error,
+  loading,
+  onCreate,
+  onDelete,
+  onEdit,
+  onRefresh,
+  services,
+  user,
+}: {
+  readonly decks: readonly ExampleDeckRecord[];
+  readonly error: string | null;
+  readonly loading: boolean;
+  readonly onCreate: () => void;
+  readonly onDelete: (deck: ExampleDeckRecord) => void;
+  readonly onEdit: (deck: ExampleDeckRecord) => void;
+  readonly onRefresh: () => void;
+  readonly services: ExampleFirebaseServices;
+  readonly user: User;
+}): React.ReactElement {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function exportCurrentDecks(): Promise<void> {
+    const payload = await exportDecks(services.db, user.uid);
+    downloadTextFile(
+      `qastia-decks-${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify(payload, null, 2),
+      "application/json",
+    );
+  }
+
+  async function importFile(file: File): Promise<void> {
+    const text = await file.text();
+    const payload = JSON.parse(text) as ExampleDeckImportPayload;
+    await importDecks(
+      services.db,
+      {
+        uid: user.uid,
+        email: user.email,
+      },
+      payload,
+    );
+    onRefresh();
+  }
+
+  return (
+    <main className="integrated-shell">
+      <section className="workspace-band">
+        <div className="workspace-header">
+          <div>
+            <p>Firebase deck repository</p>
+            <h1>Decks</h1>
+          </div>
+          <div className="workspace-actions">
+            <button type="button" onClick={onCreate}>Nouveau deck</button>
+            <button type="button" onClick={() => void exportCurrentDecks()}>Exporter</button>
+            <button type="button" onClick={() => fileInputRef.current?.click()}>Importer</button>
+            <input
+              ref={fileInputRef}
+              hidden
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file) {
+                  void importFile(file);
+                }
+              }}
+            />
+            <button type="button" onClick={() => void signOut(services.auth)}>
+              Déconnexion
+            </button>
+          </div>
+        </div>
+        <section className="deck-list-panel">
+          <header>
+            <div>
+              <h2>Bibliothèque de decks</h2>
+              <p>{user.email ?? user.uid}</p>
+            </div>
+            <button type="button" onClick={onRefresh}>Rafraîchir</button>
+          </header>
+          {error ? <p className="app-alert">{error}</p> : null}
+          {loading ? <p className="empty-state">Chargement des decks...</p> : null}
+          {!loading && decks.length === 0 ? (
+            <p className="empty-state">Aucun deck. Créez un premier support ou importez un fichier JSON.</p>
+          ) : null}
+          {decks.length > 0 ? (
+            <div className="deck-list" role="list">
+              {decks.map((deck) => (
+                <article key={deck.id} className="deck-list-card" role="listitem">
+                  <div>
+                    <strong>{deck.title}</strong>
+                    <span>{deck.slug}</span>
+                    <small>
+                      Mis à jour le {formatDate(deck.updatedAtIso)} · {deck.releaseCount} release(s)
+                    </small>
+                  </div>
+                  <div className="deck-list-actions">
+                    <button type="button" onClick={() => onEdit(deck)}>Éditer</button>
+                    <button type="button" onClick={() => onDelete(deck)}>Supprimer</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function DesignerWorkspace({
+  deckId,
+  headerKicker,
+  headerTitle,
+  initialSource,
+  onBack,
+  onCreateRelease,
+  onSave,
+  onSourceChange,
+  releasePanel,
+  saveDisabled = true,
+  saving = false,
+  sourceDirty = false,
+  storageEnabled,
+}: {
+  readonly deckId: string;
+  readonly headerKicker: string;
+  readonly headerTitle: string;
+  readonly initialSource: DeckSource;
+  readonly onBack?: () => void;
+  readonly onCreateRelease?: () => void;
+  readonly onSave?: () => void;
+  readonly onSourceChange?: (source: DeckSource) => void;
+  readonly releasePanel?: ReactNode;
+  readonly saveDisabled?: boolean;
+  readonly saving?: boolean;
+  readonly sourceDirty?: boolean;
+  readonly storageEnabled: boolean;
+}): React.ReactElement {
   const [source, setSource] = useState<DeckSource>(() => {
     const storedThemeId = readStoredThemeId();
     return storedThemeId ? updateDeckTheme(initialSource, storedThemeId) : initialSource;
@@ -119,6 +460,10 @@ function IntegratedExample(): React.ReactElement {
   const [presentationInitialSlideId, setPresentationInitialSlideId] = useState<string | undefined>();
   const [activePreviewSlideId, setActivePreviewSlideId] = useState<string | undefined>();
 
+  useEffect(() => {
+    setSource(initialSource);
+  }, [initialSource]);
+
   const renderedDeck = useMemo(() => {
     if (compileResult?.status === "valid" || compileResult?.status === "degraded") {
       return compileResult.deck;
@@ -128,6 +473,14 @@ function IntegratedExample(): React.ReactElement {
 
   const canPresent = compileResult?.status === "valid" && renderedDeck !== undefined;
   const activeThemeId = readThemeId(source);
+
+  const updateSource = useCallback(
+    (nextSource: DeckSource): void => {
+      setSource(nextSource);
+      onSourceChange?.(nextSource);
+    },
+    [onSourceChange],
+  );
 
   const openPresentation = useCallback(
     (controlsMode: DeckPresentationControlsMode = "auto"): void => {
@@ -162,7 +515,7 @@ function IntegratedExample(): React.ReactElement {
 
   useEffect(() => {
     if (!openMenu) {
-      return;
+      return undefined;
     }
 
     function closeMenu(): void {
@@ -178,10 +531,21 @@ function IntegratedExample(): React.ReactElement {
       <section className="workspace-band">
         <div className="workspace-header">
           <div>
-            <p>Session client</p>
-            <h1>Support intégré</h1>
+            <p>{headerKicker}</p>
+            <h1>{headerTitle}</h1>
           </div>
           <div className="workspace-actions">
+            {onBack ? <button type="button" onClick={onBack}>Retour</button> : null}
+            {onSave ? (
+              <button type="button" onClick={onSave} disabled={saveDisabled}>
+                {saving ? "Sauvegarde..." : sourceDirty ? "Sauvegarder" : "Sauvegardé"}
+              </button>
+            ) : null}
+            {onCreateRelease ? (
+              <button type="button" onClick={onCreateRelease} disabled={saving || !renderedDeck}>
+                Créer release
+              </button>
+            ) : null}
             {renderedDeck ? (
               <DeckPdfDownloadButton
                 deck={renderedDeck}
@@ -198,14 +562,14 @@ function IntegratedExample(): React.ReactElement {
                 className="primary-action split-action-main"
                 onClick={() => openPresentation("auto")}
                 disabled={!canPresent}
-                title={canPresent ? "Afficher en presentation plein ecran" : "Disponible uniquement sans erreur de compilation"}
+                title={canPresent ? "Afficher en présentation plein écran" : "Disponible uniquement sans erreur de compilation"}
               >
-                Presentation
+                Présentation
               </button>
               <button
                 type="button"
                 className="primary-action split-action-toggle"
-                aria-label="Choisir le mode de presentation"
+                aria-label="Choisir le mode de présentation"
                 aria-expanded={openMenu === "presentation"}
                 onClick={() => setOpenMenu((current) => (current === "presentation" ? null : "presentation"))}
                 disabled={!canPresent}
@@ -248,7 +612,7 @@ function IntegratedExample(): React.ReactElement {
                       role="menuitemradio"
                       aria-checked={activeThemeId === theme.id}
                       onClick={() => {
-                        setSource((currentSource) => updateDeckTheme(currentSource, theme.id));
+                        updateSource(updateDeckTheme(source, theme.id));
                         setOpenMenu(null);
                       }}
                     >
@@ -306,9 +670,7 @@ function IntegratedExample(): React.ReactElement {
                 <DeckShow
                   deck={renderedDeck}
                   mode="embedded"
-                  onSlideChange={(event) => {
-                    setActivePreviewSlideId(event.activeSlideId);
-                  }}
+                  onSlideChange={(event) => setActivePreviewSlideId(event.activeSlideId)}
                 />
               ) : (
                 <div className="fallback-pane">Le deck sera affiché dès que la source sera valide.</div>
@@ -316,25 +678,19 @@ function IntegratedExample(): React.ReactElement {
             </section>
           ) : null}
 
-          <section className="editor-pane" aria-label="Edition intégrée">
+          <section className="editor-pane" aria-label="Édition intégrée">
             <DeckStudio
               mode="controlled"
-              deckId="integrated-example"
+              deckId={deckId}
               value={source}
-              onChange={(nextSource) => setSource(nextSource)}
+              onChange={updateSource}
               runtime={defaultDeckRuntime}
-              storage={{
-                namespace: "qastia-deck-example",
-                recoverOnMount: true,
-              }}
-              autosave={{
-                draftDebounceMs: 600,
-                versionIntervalMs: 60_000,
-              }}
+              storage={storageEnabled ? { namespace: "qastia-deck-example", recoverOnMount: true } : false}
+              autosave={storageEnabled ? { draftDebounceMs: 600, versionIntervalMs: 60_000 } : false}
               layout={{
                 showInspector: showDiagnostics,
                 showDiagnosticsPanel: showDiagnostics,
-                showVersionHistory: true,
+                showVersionHistory: storageEnabled,
                 showSourceModeToggle: true,
                 showActiveSlidePreview: false,
                 slideRailWidthPx: 220,
@@ -348,13 +704,14 @@ function IntegratedExample(): React.ReactElement {
               }}
               features={{
                 allowPdfExport: false,
-                allowVersionRestore: true,
-                allowVersionCompare: true,
+                allowVersionRestore: storageEnabled,
+                allowVersionCompare: storageEnabled,
               }}
               onCompile={setCompileResult}
             />
           </section>
         </div>
+        {releasePanel}
       </section>
 
       {renderedDeck ? (
@@ -373,13 +730,128 @@ function IntegratedExample(): React.ReactElement {
                 : { visibility: presentationControlsMode },
             hint: {
               showWhenControlsHidden: true,
-              text: "Fleches gauche/droite: precedent/suivant. Escape: quitter.",
+              text: "Flèches gauche/droite: précédent/suivant. Escape: quitter.",
               position: "bottom-right",
             },
           }}
           onOpenChange={(event) => setPresentationOpen(event.open)}
         />
       ) : null}
+    </main>
+  );
+}
+
+function ReleasePanel({
+  releases,
+}: {
+  readonly releases: readonly ExampleDeckReleaseRecord[];
+}): React.ReactElement {
+  return (
+    <section className="release-panel">
+      <header>
+        <h2>Releases</h2>
+        <p>Chaque release conserve une copie immuable de la source YAML.</p>
+      </header>
+      {releases.length === 0 ? (
+        <p className="empty-state">Aucune release publiée.</p>
+      ) : (
+        <div className="release-list">
+          {releases.map((release) => (
+            <article key={release.id}>
+              <strong>v{release.releaseNumber} · {release.label}</strong>
+              <span>{formatDate(release.createdAtIso)}</span>
+              <small>{release.sourceHash}</small>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ConfirmLeaveDialog({
+  onCancel,
+  onDiscard,
+  onSave,
+}: {
+  readonly onCancel: () => void;
+  readonly onDiscard: () => void;
+  readonly onSave: () => void | Promise<void>;
+}): React.ReactElement {
+  return (
+    <div className="app-dialog-backdrop" role="presentation">
+      <section className="app-dialog" role="dialog" aria-modal="true" aria-label="Modifications non sauvegardées">
+        <h2>Modifications non sauvegardées</h2>
+        <p>Voulez-vous sauvegarder le deck avant de revenir à la liste ?</p>
+        <div className="app-dialog-actions">
+          <button type="button" onClick={onCancel}>Continuer l'édition</button>
+          <button type="button" onClick={onDiscard}>Annuler les changements</button>
+          <button type="button" className="primary-action" onClick={() => void onSave()}>
+            Sauvegarder et revenir
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SignInScreen({ services }: { readonly services: ExampleFirebaseServices }): React.ReactElement {
+  return (
+    <CenteredPanel
+      title="Connexion Google"
+      body="Connectez-vous pour accéder à la bibliothèque Firebase de decks."
+      action={
+        <button
+          type="button"
+          className="primary-action"
+          onClick={() => void signInWithPopup(services.auth, services.googleProvider)}
+        >
+          Se connecter avec Google
+        </button>
+      }
+      secondary={<a href="./test/">Tester sans compte</a>}
+    />
+  );
+}
+
+function FirebaseSetupScreen(): React.ReactElement {
+  return (
+    <CenteredPanel
+      title="Configuration Firebase manquante"
+      body="Renseignez les variables Vite Firebase pour activer l'auth Google et Firestore."
+      secondary={
+        <pre>{[
+          "VITE_FIREBASE_API_KEY=...",
+          "VITE_FIREBASE_AUTH_DOMAIN=...",
+          "VITE_FIREBASE_PROJECT_ID=...",
+          "VITE_FIREBASE_STORAGE_BUCKET=...",
+          "VITE_FIREBASE_MESSAGING_SENDER_ID=...",
+          "VITE_FIREBASE_APP_ID=...",
+        ].join("\n")}</pre>
+      }
+    />
+  );
+}
+
+function CenteredPanel({
+  action,
+  body,
+  secondary,
+  title,
+}: {
+  readonly action?: ReactNode;
+  readonly body: string;
+  readonly secondary?: ReactNode;
+  readonly title: string;
+}): React.ReactElement {
+  return (
+    <main className="integrated-shell centered-shell">
+      <section className="centered-panel">
+        <h1>{title}</h1>
+        <p>{body}</p>
+        {action}
+        {secondary ? <div className="centered-panel-secondary">{secondary}</div> : null}
+      </section>
     </main>
   );
 }
@@ -412,7 +884,7 @@ class ExampleErrorBoundary extends Component<
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <ExampleErrorBoundary>
-    <IntegratedExample />
+    <App />
   </ExampleErrorBoundary>,
 );
 
@@ -482,4 +954,30 @@ function ChevronIcon({ className }: { readonly className?: string }): React.Reac
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isTestRoute(): boolean {
+  const pathname = window.location.pathname.replace(/\/+$/u, "");
+  return pathname.endsWith("/test") || new URLSearchParams(window.location.search).get("mode") === "test";
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function downloadTextFile(filename: string, content: string, type: string): void {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Erreur inconnue.";
 }
