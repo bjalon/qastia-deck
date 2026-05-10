@@ -16,7 +16,21 @@ import {
   type User,
 } from "firebase/auth";
 import YAML from "yaml";
-import { type CompileDeckResult, type DeckPresentationControlsMode, type DeckSource } from "../../../src";
+import {
+  compileDeck,
+  type CompileDeckResult,
+  type DeckPersistenceAdapter,
+  type DeckPresentationControlsMode,
+  type DeckSource,
+} from "../../../src";
+import { hashSource } from "../../../src/compiler/hash";
+import { summarizeDiagnostics } from "../../../src/compiler/diagnostics";
+import {
+  ObjectVcsDeckPersistenceAdapter,
+  type ObjectVcsDeckHistory,
+  type ObjectVcsDeckState,
+} from "../../../src/storage/ObjectVcsDeckPersistenceAdapter";
+import type { BranchRecord, Head, RevisionSummary, TagRecord } from "@bjalon/object-vcs-core";
 import { DeckPdfDownloadButton } from "../../../src/pdf";
 import { DeckPresentationOverlay } from "../../../src/presentation";
 import { defaultDeckRuntime } from "../../../src/runtime";
@@ -53,11 +67,32 @@ const slideThemeOptions = Array.from(defaultDeckRuntime.themes.values()).filter(
   (theme) => theme.id !== "default",
 );
 const allowedGoogleEmails = new Set(["sophie.jalon@gmail.com", "bjalon@qastia.com"]);
+const standardDeckId = "standard-localstorage-deck";
+const standardStorageNamespace = "qastia-deck-example";
+const gitlightDeckId = "gitlight-localstorage-deck";
+const gitlightStorageNamespace = "qastia-deck-gitlight-example";
 const previewPanelStorageKey = "qastia-deck-example:panel-preview";
 const diagnosticsPanelStorageKey = "qastia-deck-example:panel-diagnostics";
 const themeStorageKey = "qastia-deck-example:theme";
 
 function App(): React.ReactElement {
+  if (isGitlightRoute()) {
+    return <GitlightLocalStorageExample />;
+  }
+
+  if (isStandardRoute()) {
+    return (
+      <DesignerWorkspace
+        deckId={standardDeckId}
+        headerTitle="Stockage standard"
+        headerKicker="LocalStorage DeckPersistenceAdapter"
+        initialSource={sampleDeckSource}
+        storageEnabled
+        storageNamespace={standardStorageNamespace}
+      />
+    );
+  }
+
   if (isTestRoute()) {
     return (
       <DesignerWorkspace
@@ -70,7 +105,11 @@ function App(): React.ReactElement {
     );
   }
 
-  return <FirebaseDeckApplication />;
+  if (isFirebaseRoute()) {
+    return <FirebaseDeckApplication />;
+  }
+
+  return <ExampleChooser />;
 }
 
 function FirebaseDeckApplication(): React.ReactElement {
@@ -305,6 +344,93 @@ function DeckEditorView({
   );
 }
 
+function ExampleChooser(): React.ReactElement {
+  return (
+    <main className="integrated-shell chooser-shell">
+      <section className="chooser-panel">
+        <div>
+          <p>Qastia Deck Runtime</p>
+          <h1>Exemples de stockage</h1>
+        </div>
+        <div className="chooser-links">
+          <a href="./standard/">
+            <strong>Stockage standard</strong>
+            <span>DeckStudio avec l'adapter localStorage par défaut.</span>
+          </a>
+          <a href="./gitlight/">
+            <strong>Stockage gitlight localStorage</strong>
+            <span>DeckStudio avec commits Object VCS et graphe des révisions.</span>
+          </a>
+        </div>
+        <div className="chooser-secondary">
+          <a href="./firebase/">Exemple Firebase complet</a>
+          <a href="./test/">Designer sans stockage</a>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function GitlightLocalStorageExample(): React.ReactElement {
+  const adapter = useMemo(
+    () =>
+      new ObjectVcsDeckPersistenceAdapter({
+        storageNamespace: gitlightStorageNamespace,
+        author: "Qastia Deck Gitlight Example",
+      }),
+    [],
+  );
+  const [source, setSource] = useState<DeckSource>(sampleDeckSource);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    adapter
+      .loadCurrent({ deckId: gitlightDeckId, namespace: gitlightStorageNamespace })
+      .then((current) => {
+        if (!cancelled && current) {
+          setSource(current.source);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoaded(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter]);
+
+  if (!loaded) {
+    return <CenteredPanel title="Chargement" body="Lecture du repository gitlight local..." />;
+  }
+
+  return (
+    <DesignerWorkspace
+      deckId={gitlightDeckId}
+      headerKicker="Object VCS localStorage"
+      headerTitle="Stockage gitlight"
+      initialSource={source}
+      onSourceChange={setSource}
+      releasePanel={
+        <GitlightHistoryPanel
+          adapter={adapter}
+          deckId={gitlightDeckId}
+          namespace={gitlightStorageNamespace}
+          source={source}
+          onRestoreSource={setSource}
+        />
+      }
+      storageAdapter={adapter}
+      storageEnabled
+      storageNamespace={gitlightStorageNamespace}
+    />
+  );
+}
+
 function DeckListView({
   decks,
   error,
@@ -432,7 +558,9 @@ function DesignerWorkspace({
   saveDisabled = true,
   saving = false,
   sourceDirty = false,
+  storageAdapter,
   storageEnabled,
+  storageNamespace = standardStorageNamespace,
 }: {
   readonly deckId: string;
   readonly headerKicker: string;
@@ -446,7 +574,9 @@ function DesignerWorkspace({
   readonly saveDisabled?: boolean;
   readonly saving?: boolean;
   readonly sourceDirty?: boolean;
+  readonly storageAdapter?: DeckPersistenceAdapter;
   readonly storageEnabled: boolean;
+  readonly storageNamespace?: string;
 }): React.ReactElement {
   const [source, setSource] = useState<DeckSource>(() => {
     const storedThemeId = readStoredThemeId();
@@ -691,7 +821,11 @@ function DesignerWorkspace({
               value={source}
               onChange={updateSource}
               runtime={defaultDeckRuntime}
-              storage={storageEnabled ? { namespace: "qastia-deck-example", recoverOnMount: true } : false}
+              storage={
+                storageEnabled
+                  ? { namespace: storageNamespace, adapter: storageAdapter, recoverOnMount: true }
+                  : false
+              }
               autosave={storageEnabled ? { draftDebounceMs: 600, versionIntervalMs: 60_000 } : false}
               layout={{
                 showInspector: showDiagnostics,
@@ -772,6 +906,223 @@ function ReleasePanel({
         </div>
       )}
     </section>
+  );
+}
+
+function GitlightHistoryPanel({
+  adapter,
+  deckId,
+  namespace,
+  onRestoreSource,
+  source,
+}: {
+  readonly adapter: ObjectVcsDeckPersistenceAdapter;
+  readonly deckId: string;
+  readonly namespace: string;
+  readonly onRestoreSource: (source: DeckSource) => void;
+  readonly source: DeckSource;
+}): React.ReactElement {
+  const [history, setHistory] = useState<ObjectVcsDeckHistory>({
+    head: null,
+    revisions: [],
+    tags: [],
+    branches: [],
+  });
+  const [selectedRevision, setSelectedRevision] = useState<RevisionSummary | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [commitLabel, setCommitLabel] = useState("Version manuelle");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async (): Promise<void> => {
+    setError(null);
+    try {
+      setHistory(await adapter.getHistory({ deckId, namespace }));
+    } catch (refreshError) {
+      setError(errorMessage(refreshError));
+    }
+  }, [adapter, deckId, namespace]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh, source.content]);
+
+  async function createCommit(): Promise<void> {
+    setBusy(true);
+    setError(null);
+    try {
+      const compiled = await compileDeck(source, {
+        runtime: defaultDeckRuntime,
+        mode: "editor",
+        locale: "fr-FR",
+      });
+      const label = commitLabel.trim() || "Version manuelle";
+      const result = await adapter.createVersion({
+        id: createVersionId(),
+        deckId,
+        namespace,
+        schemaVersion: 1,
+        createdAtIso: new Date().toISOString(),
+        label,
+        reason: "manual",
+        source,
+        sourceHash: hashSource(source.content),
+        compilerStatus: compiled.status,
+        diagnosticsSummary: summarizeDiagnostics(compiled.diagnostics),
+        limits: {
+          maxVersionsPerDeck: 200,
+          maxAutosaveVersionsPerDeck: 100,
+          maxBytesPerDeck: 20_000_000,
+        },
+      });
+      if (result.status !== "success") {
+        throw new Error(result.diagnostics[0]?.message ?? "Commit impossible.");
+      }
+      await refresh();
+    } catch (commitError) {
+      setError(errorMessage(commitError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restoreRevision(revision: RevisionSummary): Promise<void> {
+    setBusy(true);
+    setError(null);
+    try {
+      const version = await adapter.restoreRevision({ deckId, namespace, revision: revision.revision });
+      if (version) {
+        onRestoreSource(version.source);
+      }
+      await refresh();
+    } catch (restoreError) {
+      setError(errorMessage(restoreError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function previewRevision(revision: RevisionSummary): Promise<void> {
+    setSelectedRevision(revision);
+    const repository = await adapter.getRepository({ deckId, namespace });
+    const state = await repository.readRevision(revision.revision, { migrateTo: "current" });
+    setSelectedVersion(state.deck.version?.source.content ?? null);
+  }
+
+  return (
+    <section className="gitlight-panel">
+      <header>
+        <div>
+          <h2>Gitlight localStorage</h2>
+          <p>Chaque version DeckStudio devient un commit Object VCS taggé.</p>
+        </div>
+        <button type="button" onClick={() => void refresh()} disabled={busy}>
+          Rafraîchir
+        </button>
+      </header>
+
+      <div className="gitlight-toolbar">
+        <label>
+          Message
+          <input value={commitLabel} onChange={(event) => setCommitLabel(event.currentTarget.value)} />
+        </label>
+        <button type="button" onClick={() => void createCommit()} disabled={busy}>
+          Commit version
+        </button>
+        <span data-head-status={history.head?.status ?? "missing"}>
+          {history.head ? `HEAD ${history.head.status}` : "Repository vide"}
+        </span>
+      </div>
+
+      {error ? <p className="app-alert">{error}</p> : null}
+
+      <RevisionGraph
+        branches={history.branches}
+        head={history.head}
+        revisions={history.revisions}
+        selectedRevision={selectedRevision?.revision ?? null}
+        tags={history.tags}
+        onRestoreRevision={(revision) => void restoreRevision(revision)}
+        onSelectRevision={(revision) => void previewRevision(revision)}
+      />
+
+      {selectedRevision ? (
+        <div className="gitlight-preview">
+          <strong>Révision #{selectedRevision.revision}</strong>
+          <span>{selectedRevision.message ?? "Checkpoint"}</span>
+          <pre>{selectedVersion ?? "Aucune version DeckStudio sur cette révision."}</pre>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function RevisionGraph({
+  branches,
+  head,
+  onRestoreRevision,
+  onSelectRevision,
+  revisions,
+  selectedRevision,
+  tags,
+}: {
+  readonly branches: readonly BranchRecord[];
+  readonly head: Head<{ deck: ObjectVcsDeckState }> | null;
+  readonly onRestoreRevision: (revision: RevisionSummary) => void;
+  readonly onSelectRevision: (revision: RevisionSummary) => void;
+  readonly revisions: readonly RevisionSummary[];
+  readonly selectedRevision: number | null;
+  readonly tags: readonly TagRecord[];
+}): React.ReactElement {
+  const graph = useMemo(() => buildRevisionGraph(revisions), [revisions]);
+  const tagsByRevision = useMemo(() => groupTagsByRevision(tags), [tags]);
+  const branchesByRevision = useMemo(() => groupBranchesByRevision(branches), [branches]);
+
+  if (revisions.length === 0) {
+    return <p className="empty-state">Aucune révision gitlight.</p>;
+  }
+
+  return (
+    <ol className="gitlight-graph">
+      {revisions.map((revision) => {
+        const refs = [
+          ...(branchesByRevision.get(revision.revision) ?? []).map((branch) => ({
+            key: `branch:${branch.name}`,
+            label: branch.name,
+          })),
+          ...(tagsByRevision.get(revision.revision) ?? []).map((tag) => ({
+            key: `tag:${tag.name}`,
+            label: tag.name.replace("deck-version/", "version/"),
+          })),
+        ];
+        const isHead = head?.status === "clean" && head.headRevision === revision.revision;
+        const isBase = head?.status === "dirty" && head.baseRevision === revision.revision;
+
+        return (
+          <li
+            key={revision.revision}
+            className={selectedRevision === revision.revision ? "selected" : ""}
+          >
+            <pre aria-hidden="true">{graph.get(revision.revision)?.text ?? "*"}</pre>
+            <button type="button" onClick={() => onSelectRevision(revision)}>
+              <strong>#{revision.revision}</strong>
+              <span>{revision.message ?? "Checkpoint"}</span>
+              <small>{revision.branchName} · {revision.stateHash.replace(/^sha256:/, "").slice(0, 8)}</small>
+              <span className="gitlight-refs">
+                {refs.map((ref) => (
+                  <span key={ref.key}>{ref.label}</span>
+                ))}
+                {isHead ? <span>HEAD</span> : null}
+                {isBase ? <span>BASE</span> : null}
+              </span>
+            </button>
+            <button type="button" onClick={() => onRestoreRevision(revision)}>
+              Restaurer
+            </button>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -1024,8 +1375,130 @@ function isTestRoute(): boolean {
   return pathname.endsWith("/test") || new URLSearchParams(window.location.search).get("mode") === "test";
 }
 
+function isStandardRoute(): boolean {
+  const pathname = window.location.pathname.replace(/\/+$/u, "");
+  return pathname.endsWith("/standard") || new URLSearchParams(window.location.search).get("mode") === "standard";
+}
+
+function isGitlightRoute(): boolean {
+  const pathname = window.location.pathname.replace(/\/+$/u, "");
+  return pathname.endsWith("/gitlight") || new URLSearchParams(window.location.search).get("mode") === "gitlight";
+}
+
+function isFirebaseRoute(): boolean {
+  const pathname = window.location.pathname.replace(/\/+$/u, "");
+  return pathname.endsWith("/firebase") || new URLSearchParams(window.location.search).get("mode") === "firebase";
+}
+
 function isAllowedUser(user: User): boolean {
   return typeof user.email === "string" && allowedGoogleEmails.has(user.email.toLowerCase());
+}
+
+type RevisionGraphCell = {
+  readonly text: string;
+};
+
+function buildRevisionGraph(revisions: readonly RevisionSummary[]): ReadonlyMap<number, RevisionGraphCell> {
+  const revisionIndex = new Map<number, number>();
+  const revisionByNumber = new Map<number, RevisionSummary>();
+  const branchRows = new Map<string, number[]>();
+  const lanes: string[] = [];
+
+  revisions.forEach((revision, index) => {
+    revisionIndex.set(revision.revision, index);
+    revisionByNumber.set(revision.revision, revision);
+    if (!branchRows.has(revision.branchName)) {
+      branchRows.set(revision.branchName, []);
+      lanes.push(revision.branchName);
+    }
+    branchRows.get(revision.branchName)?.push(index);
+  });
+
+  const laneByBranch = new Map(lanes.map((branchName, index) => [branchName, index]));
+  const ranges = new Map<string, { readonly start: number; readonly end: number }>();
+  const connections: Array<{
+    readonly childBranch: string;
+    readonly parentBranch: string;
+    readonly parentIndex: number;
+  }> = [];
+
+  for (const [branchName, rows] of branchRows.entries()) {
+    const branchStart = Math.min(...rows);
+    const branchLastOwnRow = Math.max(...rows);
+    let branchEnd = branchLastOwnRow;
+
+    for (const row of rows) {
+      const revision = revisions[row];
+      if (!revision?.parentRevision) {
+        continue;
+      }
+      const parent = revisionByNumber.get(revision.parentRevision);
+      const parentIndex = revisionIndex.get(revision.parentRevision);
+      if (!parent || parentIndex === undefined || parent.branchName === revision.branchName) {
+        continue;
+      }
+      connections.push({
+        childBranch: revision.branchName,
+        parentBranch: parent.branchName,
+        parentIndex,
+      });
+      branchEnd = Math.max(branchEnd, parentIndex);
+    }
+
+    ranges.set(branchName, { start: branchStart, end: branchEnd });
+  }
+
+  const graph = new Map<number, RevisionGraphCell>();
+  revisions.forEach((revision, index) => {
+    const currentLane = laneByBranch.get(revision.branchName) ?? 0;
+    const cells = lanes.map((branchName) => {
+      const range = ranges.get(branchName);
+      return range && index >= range.start && index <= range.end ? "|" : " ";
+    });
+
+    for (const connection of connections.filter((item) => item.parentIndex === index)) {
+      const childLane = laneByBranch.get(connection.childBranch);
+      const parentLane = laneByBranch.get(connection.parentBranch);
+      if (childLane === undefined || parentLane === undefined) {
+        continue;
+      }
+      const minLane = Math.min(childLane, parentLane);
+      const maxLane = Math.max(childLane, parentLane);
+      for (let lane = minLane + 1; lane < maxLane; lane += 1) {
+        cells[lane] = "-";
+      }
+      cells[childLane] = childLane < parentLane ? "\\" : "/";
+    }
+
+    cells[currentLane] = "*";
+    graph.set(revision.revision, { text: cells.join(" ") });
+  });
+
+  return graph;
+}
+
+function groupTagsByRevision(tags: readonly TagRecord[]): ReadonlyMap<number, readonly TagRecord[]> {
+  const grouped = new Map<number, TagRecord[]>();
+  for (const tag of tags) {
+    grouped.set(tag.revision, [...(grouped.get(tag.revision) ?? []), tag]);
+  }
+  return grouped;
+}
+
+function groupBranchesByRevision(branches: readonly BranchRecord[]): ReadonlyMap<number, readonly BranchRecord[]> {
+  const grouped = new Map<number, BranchRecord[]>();
+  for (const branch of branches) {
+    if (branch.headRevision === null) {
+      continue;
+    }
+    grouped.set(branch.headRevision, [...(grouped.get(branch.headRevision) ?? []), branch]);
+  }
+  return grouped;
+}
+
+function createVersionId(): string {
+  const random = Math.random().toString(16).slice(2, 10);
+  return `${new Date().toISOString().replace(/[:.]/g, "-")}_${random}`;
 }
 
 function formatDate(value: string): string {

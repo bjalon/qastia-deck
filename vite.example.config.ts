@@ -14,6 +14,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(__dirname, "examples/integrated/index.html"),
+        firebase: resolve(__dirname, "examples/integrated/firebase/index.html"),
+        gitlight: resolve(__dirname, "examples/integrated/gitlight/index.html"),
+        standard: resolve(__dirname, "examples/integrated/standard/index.html"),
         test: resolve(__dirname, "examples/integrated/test/index.html"),
       },
       output: {

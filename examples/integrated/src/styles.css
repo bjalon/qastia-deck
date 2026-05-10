@@ -94,6 +94,81 @@ textarea {
   font-weight: 800;
 }
 
+.chooser-shell {
+  align-items: center;
+  display: grid;
+  padding: 1rem;
+}
+
+.chooser-panel {
+  background: #ffffff;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  box-shadow: 0 16px 44px rgba(16, 24, 40, 0.1);
+  display: grid;
+  gap: 1.25rem;
+  margin: 0 auto;
+  max-width: 720px;
+  padding: 1.5rem;
+  width: min(100%, 720px);
+}
+
+.chooser-panel p,
+.chooser-panel h1 {
+  margin: 0;
+}
+
+.chooser-panel p {
+  color: #667085;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.chooser-panel h1 {
+  font-size: 1.65rem;
+}
+
+.chooser-links {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.chooser-links a,
+.chooser-secondary a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.chooser-links a {
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+}
+
+.chooser-links a:hover {
+  background: #f8fafc;
+  border-color: #98a2b3;
+}
+
+.chooser-links span,
+.chooser-secondary {
+  color: #667085;
+}
+
+.chooser-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chooser-secondary a {
+  color: #175cd3;
+  font-weight: 800;
+}
+
 .workspace-band {
   box-sizing: border-box;
   display: grid;
@@ -397,7 +472,8 @@ textarea {
 }
 
 .deck-list-panel,
-.release-panel {
+.release-panel,
+.gitlight-panel {
   background: #ffffff;
   border: 1px solid #d8dee8;
   border-radius: 8px;
@@ -407,13 +483,166 @@ textarea {
 }
 
 .deck-list-panel > header,
-.release-panel > header {
+.release-panel > header,
+.gitlight-panel > header {
   align-items: center;
   border-bottom: 1px solid #eef2f7;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
   padding-bottom: 1rem;
+}
+
+.gitlight-panel h2,
+.gitlight-panel p {
+  margin: 0;
+}
+
+.gitlight-panel p,
+.gitlight-preview span {
+  color: #667085;
+}
+
+.gitlight-toolbar {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.gitlight-toolbar label {
+  display: grid;
+  gap: 0.3rem;
+  min-width: min(100%, 18rem);
+}
+
+.gitlight-toolbar input {
+  border: 1px solid #cfd6e4;
+  border-radius: 6px;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.gitlight-toolbar [data-head-status] {
+  border: 1px solid #cfd6e4;
+  border-radius: 999px;
+  color: #1f2a44;
+  font-weight: 800;
+  padding: 0.45rem 0.7rem;
+}
+
+.gitlight-toolbar [data-head-status="dirty"] {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.gitlight-toolbar [data-head-status="clean"] {
+  background: #ecfdf3;
+  border-color: #abefc6;
+  color: #067647;
+}
+
+.gitlight-graph {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gitlight-graph li {
+  align-items: stretch;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(3rem, auto) minmax(0, 1fr) auto;
+  padding: 0.55rem;
+}
+
+.gitlight-graph li.selected {
+  background: #eff6ff;
+  border-color: #84caff;
+}
+
+.gitlight-graph pre {
+  align-self: center;
+  color: #475467;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin: 0;
+  text-align: center;
+}
+
+.gitlight-graph button {
+  border-radius: 6px;
+}
+
+.gitlight-graph button:first-of-type {
+  align-items: start;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 0.22rem;
+  justify-items: start;
+  padding: 0.2rem;
+  text-align: left;
+}
+
+.gitlight-graph button:last-of-type,
+.gitlight-toolbar button,
+.gitlight-panel > header button {
+  background: #ffffff;
+  border: 1px solid #cfd6e4;
+  color: #1f2a44;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.gitlight-graph button:last-of-type:hover,
+.gitlight-toolbar button:hover,
+.gitlight-panel > header button:hover {
+  background: #f3f6fb;
+}
+
+.gitlight-graph small {
+  color: #667085;
+}
+
+.gitlight-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.gitlight-refs span {
+  background: #eef2f7;
+  border-radius: 999px;
+  color: #344054;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+}
+
+.gitlight-preview {
+  border-top: 1px solid #eef2f7;
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 1rem;
+}
+
+.gitlight-preview pre {
+  background: #101828;
+  border-radius: 8px;
+  color: #f9fafb;
+  margin: 0;
+  max-height: 22rem;
+  overflow: auto;
+  padding: 1rem;
 }
 
 .deck-list {
