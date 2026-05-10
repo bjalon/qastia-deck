@@ -35,6 +35,10 @@
       "types": "./dist/types/compiler.d.ts",
       "import": "./dist/compiler.js"
     },
+    "./gitlight": {
+      "types": "./dist/types/gitlight.d.ts",
+      "import": "./dist/gitlight.js"
+    },
     "./runtime": {
       "types": "./dist/types/runtime.d.ts",
       "import": "./dist/runtime.js"
@@ -62,8 +66,14 @@
     "test:playwright": "playwright test"
   },
   "peerDependencies": {
+    "@bjalon/object-vcs-core": ">=0.1.0",
     "react": ">=18",
     "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@bjalon/object-vcs-core": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@codemirror/lang-yaml": "^6.1.2",
@@ -81,6 +91,7 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
+    "@bjalon/object-vcs-core": "file:../qastia-gitlight/packages/core",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
